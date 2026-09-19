@@ -1,4 +1,10 @@
 export const uiTr: Record<string, string> = {
+  "Interface style": "Arayüz stili",
+  "INTERFACE STYLE": "ARAYÜZ STİLİ",
+  Playful: "Oyunbaz",
+  Balanced: "Dengeli",
+  "Rounded type, illustrated details.": "Yuvarlak yazılar, renkli detaylar.",
+  "Clean type, a calmer finish.": "Sade yazılar, ölçülü detaylar.",
   "A WORLD IN MOTION": "HAREKET HALİNDE BİR DÜNYA",
   "GLOBAL MARKET SIMULATION": "KÜRESEL PİYASA SİMÜLASYONU",
   "FOLLOW YOUR CURIOSITY": "MERAKININ PEŞİNDEN GİT",

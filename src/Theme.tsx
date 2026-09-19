@@ -12,6 +12,7 @@ import { Capacitor } from "@capacitor/core";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
 export type ThemeName = "light" | "mid" | "dark";
+export type InterfaceStyle = "playful" | "balanced";
 export const themeScenes = {
   light: {
     sky: "#dce9df",
@@ -51,6 +52,8 @@ const Context = createContext({
   theme: "light" as ThemeName,
   setTheme: (_: ThemeName) => {},
   scene: themeScenes.light,
+  interfaceStyle: "balanced" as InterfaceStyle,
+  setInterfaceStyle: (_: InterfaceStyle) => {},
 });
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { tr } = useLocale();
@@ -62,6 +65,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       return "light";
     }
   });
+  const [interfaceStyle, setInterfaceStyle] = useState<InterfaceStyle>(() => {
+    try {
+      return localStorage.getItem("meridian-ui-style") === "playful"
+        ? "playful"
+        : "balanced";
+    } catch {
+      return "balanced";
+    }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.uiStyle = interfaceStyle;
+    try {
+      localStorage.setItem("meridian-ui-style", interfaceStyle);
+    } catch {}
+  }, [interfaceStyle]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     if (Capacitor.isNativePlatform())
@@ -81,7 +99,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [theme]);
   return (
-    <Context.Provider value={{ theme, setTheme, scene: themeScenes[theme] }}>
+    <Context.Provider
+      value={{
+        theme,
+        setTheme,
+        scene: themeScenes[theme],
+        interfaceStyle,
+        setInterfaceStyle,
+      }}
+    >
       {tr(children)}
     </Context.Provider>
   );
@@ -89,7 +115,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export const useTheme = () => useContext(Context);
 export function ThemeSwitcher() {
   const { tr } = useLocale();
-  const { theme, setTheme } = useTheme(),
+  const { theme, setTheme, interfaceStyle, setInterfaceStyle } = useTheme(),
     [open, setOpen] = useState(false),
     host = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -140,6 +166,38 @@ export function ThemeSwitcher() {
               {theme === id && <Check size={14} />}
             </button>
           ))}
+          <div
+            className="appearance-styles"
+            role="group"
+            aria-label={tr("Interface style")}
+          >
+            <span className="eyebrow">{tr("INTERFACE STYLE")}</span>
+            {(
+              [
+                ["playful", "Playful", "Rounded type, illustrated details."],
+                ["balanced", "Balanced", "Clean type, a calmer finish."],
+              ] as const
+            ).map(([id, label, description]) => (
+              <button
+                key={id}
+                aria-label={tr(label)}
+                aria-pressed={interfaceStyle === id}
+                onClick={() => {
+                  setInterfaceStyle(id);
+                  setOpen(false);
+                }}
+              >
+                <span className={"style-sample " + id} aria-hidden="true">
+                  Aa
+                </span>
+                <span className="style-description">
+                  <strong>{tr(label)}</strong>
+                  <small>{tr(description)}</small>
+                </span>
+                {interfaceStyle === id && <Check size={14} />}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

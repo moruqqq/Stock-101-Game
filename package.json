@@ -18,7 +18,8 @@
     "test:cities": "node scripts/city-tour.mjs",
     "test:city-life": "node scripts/live-city-check.mjs",
     "test:locale": "node scripts/locale-check.mjs",
-    "test:zoom-entry": "node scripts/zoom-entry-check.mjs"
+    "test:zoom-entry": "node scripts/zoom-entry-check.mjs",
+    "test:appearance": "node scripts/appearance-check.mjs"
   },
   "dependencies": {
     "@capacitor/core": "^8.0.0",

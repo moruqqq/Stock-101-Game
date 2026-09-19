@@ -19,6 +19,7 @@ import "./expansion.css";
 import "./themes.css";
 import "./city-live.css";
 import "./locale.css";
+import "./appearance.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <LocaleProvider>

@@ -136,3 +136,9 @@ Run `npm run test:city-life` against the preview server for the report-to-city, 
 ### Turkish / English
 
 Use **TR / EN** in the header or in an open dialog to switch instantly without resetting the simulation, camera, portfolio or order quantity. The preference is stored locally; first launch follows the device language (Turkish for a Turkish device, English otherwise). Menus, financial UI, all 101 report scenarios, captions and all 15 city guides have Turkish text. News and market searches accept either language. Number formatting follows the selected language; currency units remain unchanged. Run `npm run test:locale` against the preview server for the full mobile language and trading flow.
+
+### Interface style
+
+The appearance menu offers **Playful / Balanced** (TR: **Oyunbaz / Dengeli**) independently of Light / Mid / Dark. Balanced is the default: DM Sans headings, calmer labels, smaller corner radii and lighter button treatment. Playful retains the original rounded Fredoka presentation. The illustrated globe, city models and animation stay consistent. The choice persists locally as `meridian-ui-style` and can be changed without resetting the current scene or simulation.
+
+Run `npm run test:appearance` against the preview server to check both styles across all three colour themes, persistence, TR/EN controls, city continuity and mobile layouts.
