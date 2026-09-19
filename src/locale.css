@@ -1,0 +1,102 @@
+.language-switcher {
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 9px;
+  flex: none;
+  margin-left: auto;
+}
+.language-switcher button {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-soft);
+  border-radius: 6px;
+}
+.language-switcher button[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--surface-soft);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.language-switcher + .theme-switcher {
+  margin-left: 0;
+}
+@media (max-width: 700px) {
+  .topbar {
+    gap: 9px;
+  }
+  .language-switcher button {
+    min-width: 29px;
+    min-height: 34px;
+    font-size: 10px;
+  }
+  .language-switcher {
+    padding: 2px;
+  }
+  .topbar .brand {
+    min-width: 0;
+  }
+  .topbar .brand > span {
+    font-size: 17px;
+  }
+  .topbar .brand small {
+    letter-spacing: 0.8px;
+    font-size: 6px;
+  }
+  html[lang="tr"] .market-counts {
+    gap: 7px;
+  }
+  html[lang="tr"] .market-counts small {
+    font-size: 7px;
+    letter-spacing: 0;
+  }
+  html[lang="tr"] .district-tabs button {
+    font-size: 9px;
+    padding: 8px;
+  }
+  html[lang="tr"] .city-observation button {
+    font-size: 8px;
+  }
+  html[lang="tr"] .city-info.collapsed h2 {
+    font-size: 16px;
+  }
+}
+@media (max-width: 365px) {
+  .topbar {
+    gap: 6px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .topbar .brand > span {
+    font-size: 15px;
+  }
+  .topbar .brand > svg {
+    width: 27px;
+    height: 27px;
+  }
+  .language-switcher button {
+    min-width: 26px;
+  }
+}
+
+.sheet-header .language-switcher {
+  margin-left: auto;
+  margin-right: 6px;
+}
+.sheet-header > .language-switcher button {
+  min-width: 28px;
+  min-height: 32px;
+}
+@media (max-width: 365px) {
+  .sheet-header {
+    gap: 6px;
+  }
+  .sheet-header h2 {
+    font-size: 21px;
+  }
+}

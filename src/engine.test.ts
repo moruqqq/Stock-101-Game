@@ -129,3 +129,74 @@ describe("Market movement", () => {
     expect(next.low).toBeLessThanOrEqual(next.price);
   });
 });
+
+describe("Odd news has concrete market consequences", () => {
+  it("new African lakes help global shipping but hurt mining in another open region", async () => {
+    const { makeOddEvent } = await import("./data");
+    const now = Date.parse("2026-09-15T02:00:00Z"),
+      companies = makeCompanies();
+    const baseline = movePrices(companies, [], now, () => 0.5);
+    const changed = movePrices(
+      companies,
+      [makeOddEvent("lakes", now, "test-lakes")],
+      now,
+      () => 0.5,
+    );
+    expect(changed.find((c) => c.symbol === "STRA")!.price).toBeGreaterThan(
+      baseline.find((c) => c.symbol === "STRA")!.price,
+    );
+    expect(changed.find((c) => c.symbol === "OPAL")!.price).toBeLessThan(
+      baseline.find((c) => c.symbol === "OPAL")!.price,
+    );
+    expect(changed.find((c) => c.symbol === "POND")!.price).toBe(
+      companies.find((c) => c.symbol === "POND")!.price,
+    );
+  });
+  it("the cat takeover boosts Istanbul technology without changing New York technology", async () => {
+    const { makeOddEvent } = await import("./data");
+    const now = Date.parse("2026-09-15T14:30:00Z"),
+      companies = makeCompanies();
+    const baseline = movePrices(companies, [], now, () => 0.5),
+      changed = movePrices(
+        companies,
+        [makeOddEvent("cats", now, "test-cats")],
+        now,
+        () => 0.5,
+      );
+    expect(changed.find((c) => c.symbol === "THRA")!.price).toBeGreaterThan(
+      baseline.find((c) => c.symbol === "THRA")!.price,
+    );
+    expect(changed.find((c) => c.symbol === "NOVA")!.price).toBe(
+      baseline.find((c) => c.symbol === "NOVA")!.price,
+    );
+  });
+  it("the moon bill puts downward pressure on every open sector", async () => {
+    const { makeOddEvent, isTrading } = await import("./data");
+    const now = at("14:30:00"),
+      companies = makeCompanies(),
+      baseline = movePrices(companies, [], now, () => 0.5),
+      changed = movePrices(
+        companies,
+        [makeOddEvent("moon", now, "test-moon")],
+        now,
+        () => 0.5,
+      );
+    companies.forEach((c, i) => {
+      if (
+        isTrading(
+          hubs.find((h) => h.id === c.hub)!,
+          now,
+        )
+      )
+        expect(changed[i].price).toBeLessThan(baseline[i].price);
+      else expect(changed[i].price).toBe(c.price);
+    });
+  });
+  it("displayed sector directions agree with the event engine, including mixed effects", async () => {
+    const { makeOddEvent, sectorImpact } = await import("./data");
+    const event = makeOddEvent("lakes", Date.now(), "test-directions");
+    expect(sectorImpact(event, "Logistics")).toBeGreaterThan(0);
+    expect(sectorImpact(event, "Mining")).toBeLessThan(0);
+    expect(event.effects?.Mining).toBe(sectorImpact(event, "Mining"));
+  });
+});

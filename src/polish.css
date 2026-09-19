@@ -58,7 +58,7 @@
   padding-top: 10px;
   border-top: 1px solid var(--line);
   font-size: 9px;
-  color: #b9a485;
+  color: var(--paint-ink-b9a485, #b9a485);
   max-width: 380px;
   line-height: 1.6;
 }

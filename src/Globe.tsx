@@ -1,3 +1,6 @@
+import { useLocale } from "./Locale";
+import WorldDecor from "./WorldDecor";
+import { useTheme } from "./Theme";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
@@ -12,7 +15,22 @@ import { feature, mesh } from "topojson-client";
 import type { OrbitControls as OrbitImpl } from "three-stdlib";
 import { hubs, session, type Hub, type MarketEvent } from "./data";
 
+import {
+  atGlobeZoomLimit,
+  GLOBE_MIN_DISTANCE,
+  GlobeZoomEntry,
+} from "./globeZoom";
+
 const R = 1.7;
+function nearestHub(point: THREE.Vector3) {
+  const direction = point.clone().normalize();
+  return hubs.reduce((a, b) =>
+    position(a.lat, a.lng, 1).dot(direction) >
+    position(b.lat, b.lng, 1).dot(direction)
+      ? a
+      : b,
+  );
+}
 export function position(lat: number, lng: number, r = R) {
   const a = (lat * Math.PI) / 180,
     b = (lng * Math.PI) / 180;
@@ -26,6 +44,7 @@ export type GlobeView = {
   level: "global" | "region" | "city";
   hub: Hub;
   distance: number;
+  atZoomLimit?: boolean;
 };
 export type GlobeCommand = {
   id: number;
@@ -34,6 +53,9 @@ export type GlobeCommand = {
   reset?: boolean;
 };
 interface Props {
+  onInteract?: () => void;
+  onEnterCity?: (id: string) => void;
+  paused?: boolean;
   now: number;
   events: MarketEvent[];
   selected: string | null;
@@ -61,7 +83,7 @@ function loadGeography() {
         canvas.width = 2048;
         canvas.height = 1024;
         const ctx = canvas.getContext("2d")!;
-        ctx.fillStyle = "#0b141c";
+        ctx.fillStyle = "#7dbfcc";
         ctx.fillRect(0, 0, 2048, 1024);
         const countries = feature(topo, topo.objects.countries) as unknown as {
           features: {
@@ -77,11 +99,11 @@ function loadGeography() {
               ? [f.geometry.coordinates as number[][][]]
               : (f.geometry.coordinates as number[][][][]);
           ctx.fillStyle = [
-            "#293b47",
-            "#283945",
-            "#253844",
-            "#2a3d49",
-            "#273a46",
+            "#c4d4a4",
+            "#d5d7aa",
+            "#b5cc9a",
+            "#dbceaa",
+            "#b8cdb7",
           ][i % 5];
           polys.forEach((poly) => {
             ctx.beginPath();
@@ -108,7 +130,7 @@ function loadGeography() {
             lng = rand() * 360 - 180;
           const x = Math.floor(((lng + 180) / 360) * 2048),
             y = Math.floor(((90 - lat) / 180) * 1024);
-          if (pixels[(y * 2048 + x) * 4] > 28)
+          if (pixels[(y * 2048 + x) * 4] > 155)
             points.push(...position(lat, lng, R + 0.006).toArray());
         }
         const lines = mesh(topo, topo.objects.countries).coordinates,
@@ -144,6 +166,7 @@ function loadGeography() {
   return geoPromise;
 }
 function Earth({ geo }: { geo: Geography }) {
+  const { scene } = useTheme();
   const grid = useMemo(() => {
     const coords: number[] = [];
     for (let lat = -60; lat <= 60; lat += 30)
@@ -166,28 +189,20 @@ function Earth({ geo }: { geo: Geography }) {
   return (
     <group>
       <mesh>
-        <sphereGeometry args={[R, 80, 56]} />
+        <sphereGeometry args={[R, 72, 48]} />
         <meshStandardMaterial
           map={geo.texture}
+          color={scene.globe}
           roughness={1}
-          metalness={0.05}
+          metalness={0}
         />
       </mesh>
       <lineSegments geometry={geo.borders}>
-        <lineBasicMaterial color="#758a95" transparent opacity={0.35} />
+        <lineBasicMaterial color="#f2edcf" transparent opacity={0.35} />
       </lineSegments>
       <lineSegments geometry={grid}>
-        <lineBasicMaterial color="#69808f" transparent opacity={0.09} />
+        <lineBasicMaterial color="#f7f4e0" transparent opacity={0.09} />
       </lineSegments>
-      <points geometry={geo.dots}>
-        <pointsMaterial
-          size={0.006}
-          color="#a6b7b9"
-          transparent
-          opacity={0.26}
-          sizeAttenuation
-        />
-      </points>
       <mesh scale={1.018}>
         <sphereGeometry args={[R, 64, 40]} />
         <shaderMaterial
@@ -200,7 +215,7 @@ function Earth({ geo }: { geo: Geography }) {
             "varying vec3 vNormal; varying vec3 vView; void main(){vec4 p=modelViewMatrix*vec4(position,1.0);vNormal=normalize(normalMatrix*normal);vView=normalize(-p.xyz);gl_Position=projectionMatrix*p;}"
           }
           fragmentShader={
-            "varying vec3 vNormal;varying vec3 vView;void main(){float f=pow(1.0-abs(dot(vNormal,vView)),3.5);gl_FragColor=vec4(0.22,0.32,0.39,f*0.30);}"
+            "varying vec3 vNormal;varying vec3 vView;void main(){float f=pow(1.0-abs(dot(vNormal,vView)),3.5);gl_FragColor=vec4(0.45,0.68,0.73,f*0.18);}"
           }
         />
       </mesh>
@@ -226,21 +241,22 @@ function HubPoint({
   onEvent: () => void;
   exposure?: number;
 }) {
+  const { tr } = useLocale();
   const pos = useMemo(() => position(hub.lat, hub.lng, R + 0.018), [hub]);
   const pulse = useRef<THREE.Mesh>(null),
     html = useRef<HTMLDivElement>(null);
   const status = session(hub, now).status,
     active = status === "OPEN" || status === "CLOSING";
   const color = selected
-    ? "#dfb77e"
+    ? "#e7866e"
     : exposure
-      ? "#b6c5e1"
+      ? "#9b88bc"
       : active
-        ? "#73c8a5"
+        ? "#4d896b"
         : status === "PRE-MARKET"
-          ? "#b9a17b"
-          : "#70818b";
-  const featured = ["nyc", "lon", "ist", "tok", "dub", "syd", "sao"].includes(
+          ? "#c59d51"
+          : "#68889b";
+  const featured = ["nyc", "lon", "ist", "tok", "dub", "nai", "sao"].includes(
     hub.id,
   );
   const label =
@@ -285,7 +301,7 @@ function HubPoint({
         >
           <button
             className={`hub-hit ${label ? "with-label" : ""} ${selected ? "selected" : ""}`}
-            aria-label={`Explore ${hub.name}`}
+            aria-label={tr(`Explore ${hub.name}`)}
             onClick={(e) => {
               e.stopPropagation();
               if (e.detail) e.currentTarget.blur();
@@ -296,11 +312,13 @@ function HubPoint({
             <span className="hub-dot" />
             {label && (
               <span className="hub-name">
-                {hub.name}
+                {tr(hub.name)}
                 {exposure !== undefined ? (
-                  <small>${Math.round(exposure).toLocaleString()}</small>
+                  <small>${tr(Math.round(exposure).toLocaleString())}</small>
                 ) : (
-                  level !== "global" && <small>{status.toLowerCase()}</small>
+                  level !== "global" && (
+                    <small>{tr(status.toLowerCase())}</small>
+                  )
                 )}
               </span>
             )}
@@ -308,7 +326,7 @@ function HubPoint({
           {event && (
             <button
               className="event-beacon"
-              aria-label={`News near ${hub.name}`}
+              aria-label={tr(`News near ${hub.name}`)}
               onClick={(e) => {
                 e.stopPropagation();
                 if (e.detail) e.currentTarget.blur();
@@ -316,7 +334,7 @@ function HubPoint({
               }}
             >
               <span />
-              {level === "city" ? "NEWS" : <i />}
+              {tr(level === "city" ? "STORY" : "!")}
             </button>
           )}
         </div>
@@ -370,7 +388,7 @@ function Connection({
     <group>
       <Line
         points={points}
-        color={active ? "#819d91" : "#5b717c"}
+        color={active ? "#fff0b6" : "#dfedd3"}
         lineWidth={0.65}
         transparent
         opacity={active ? 0.28 : 0.1}
@@ -378,7 +396,7 @@ function Connection({
       {active && (
         <mesh ref={particle}>
           <sphereGeometry args={[0.009, 8, 6]} />
-          <meshBasicMaterial color="#9ac6b1" />
+          <meshBasicMaterial color="#fff0b6" />
         </mesh>
       )}
     </group>
@@ -389,25 +407,128 @@ function Scene(props: Props & { geo: Geography }) {
     fly = useRef<THREE.Vector3 | null>(null),
     last = useRef(0),
     lastView = useRef("");
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
+  const zoomEntry = useRef(new GlobeZoomEntry());
+  const enterCallback = useRef(props.onEnterCity);
+  const entering = useRef(false);
+  enterCallback.current = props.onEnterCity;
+  const enterCity = () => {
+    if (entering.current || !enterCallback.current) return;
+    entering.current = true;
+    enterCallback.current(nearestHub(camera.position).id);
+  };
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const fingers = new Map<number, { x: number; y: number }>();
+    const spread = () => {
+      const [a, b] = [...fingers.values()];
+      return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
+    };
+    const start = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      fingers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (fingers.size === 2)
+        zoomEntry.current.beginPinch(
+          spread(),
+          fly.current ? Infinity : camera.position.length(),
+        );
+    };
+    const move = (event: PointerEvent) => {
+      if (!fingers.has(event.pointerId)) return;
+      fingers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (
+        fingers.size === 2 &&
+        zoomEntry.current.pinch(spread(), camera.position.length())
+      )
+        enterCity();
+    };
+    const end = (event: PointerEvent) => {
+      fingers.delete(event.pointerId);
+      zoomEntry.current.endPinch();
+    };
+    const wheel = (event: WheelEvent) => {
+      const delta =
+        event.deltaY *
+        (event.deltaMode === 1
+          ? 16
+          : event.deltaMode === 2
+            ? canvas.clientHeight
+            : 1);
+      if (
+        zoomEntry.current.wheel(
+          delta,
+          fly.current ? Infinity : camera.position.length(),
+          event.timeStamp,
+        )
+      )
+        enterCity();
+    };
+    // Capture before OrbitControls clamps the new gesture to minDistance.
+    canvas.addEventListener("pointerdown", start, true);
+    canvas.addEventListener("pointermove", move, true);
+    canvas.addEventListener("pointerup", end, true);
+    canvas.addEventListener("pointercancel", end, true);
+    canvas.addEventListener("wheel", wheel, { capture: true, passive: true });
+    return () => {
+      canvas.removeEventListener("pointerdown", start, true);
+      canvas.removeEventListener("pointermove", move, true);
+      canvas.removeEventListener("pointerup", end, true);
+      canvas.removeEventListener("pointercancel", end, true);
+      canvas.removeEventListener("wheel", wheel, true);
+    };
+  }, [camera, gl]);
   const [level, setLevel] = useState<GlobeView["level"]>("global");
   useEffect(() => {
     const cmd = props.command;
+    if (cmd.hub || cmd.reset) zoomEntry.current.reset();
+    if (
+      cmd.zoom &&
+      cmd.zoom < 0 &&
+      !cmd.hub &&
+      !fly.current &&
+      atGlobeZoomLimit(camera.position.length())
+    ) {
+      enterCity();
+      return;
+    }
     if (cmd.hub) {
       const h = hubs.find((h) => h.id === cmd.hub)!;
-      fly.current = position(h.lat, h.lng, cmd.zoom ?? 3.8);
+      fly.current = position(
+        h.lat,
+        h.lng,
+        Math.max(GLOBE_MIN_DISTANCE, cmd.zoom ?? 3.8),
+      );
     } else if (cmd.reset) fly.current = position(24, 24, 6.6);
     else if (cmd.zoom)
       fly.current = camera.position
         .clone()
         .normalize()
         .multiplyScalar(
-          THREE.MathUtils.clamp(camera.position.length() + cmd.zoom, 2.65, 8.6),
+          THREE.MathUtils.clamp(
+            camera.position.length() + cmd.zoom,
+            GLOBE_MIN_DISTANCE,
+            8.6,
+          ),
         );
   }, [props.command, camera]);
   useFrame(({ clock }, delta) => {
     if (fly.current) {
-      camera.position.lerp(fly.current, 1 - Math.exp(-delta * 5));
+      const factor = 1 - Math.exp(-delta * 5);
+      const distance = THREE.MathUtils.lerp(
+        camera.position.length(),
+        fly.current.length(),
+        factor,
+      );
+      camera.position
+        .lerp(
+          fly.current
+            .clone()
+            .normalize()
+            .multiplyScalar(camera.position.length()),
+          factor,
+        )
+        .normalize()
+        .multiplyScalar(distance);
       if (camera.position.distanceTo(fly.current) < 0.005) fly.current = null;
       controls.current?.update();
     }
@@ -416,29 +537,26 @@ function Scene(props: Props & { geo: Geography }) {
       const d = camera.position.length(),
         next = d > 5.3 ? "global" : d > 3.55 ? "region" : "city";
       if (next !== level) setLevel(next);
-      const dir = camera.position.clone().normalize();
-      const hub = hubs.reduce((a, b) =>
-        position(a.lat, a.lng, 1).dot(dir) > position(b.lat, b.lng, 1).dot(dir)
-          ? a
-          : b,
-      );
-      const key = next + hub.id + Math.round(d * 5);
+      const hub = nearestHub(camera.position);
+      const atZoomLimit = atGlobeZoomLimit(d);
+      const key = next + hub.id + Math.round(d * 5) + atZoomLimit;
       if (key !== lastView.current) {
         lastView.current = key;
-        props.onView({ level: next, hub, distance: d });
+        props.onView({ level: next, hub, distance: d, atZoomLimit });
       }
     }
   });
   return (
     <>
-      <ambientLight intensity={1.15} />
-      <directionalLight position={[4, 5, -2]} intensity={2.1} color="#d8e5ec" />
+      <ambientLight intensity={1.1} />
+      <directionalLight position={[4, 5, -2]} intensity={1.4} color="#fff2dc" />
       <directionalLight
         position={[-5, -2, 4]}
         intensity={0.32}
         color="#b7c9d8"
       />
       <Earth geo={props.geo} />
+      <WorldDecor />
       {hubs.map((h) => (
         <HubPoint
           key={h.id}
@@ -473,12 +591,13 @@ function Scene(props: Props & { geo: Geography }) {
         enablePan={false}
         enableDamping
         dampingFactor={0.07}
-        minDistance={2.65}
+        minDistance={GLOBE_MIN_DISTANCE}
         maxDistance={8.6}
         rotateSpeed={0.5}
         zoomSpeed={0.65}
         onStart={() => {
           fly.current = null;
+          props.onInteract?.();
         }}
         touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }}
       />
@@ -487,6 +606,7 @@ function Scene(props: Props & { geo: Geography }) {
   );
 }
 export default function Globe(props: Props) {
+  const { tr } = useLocale();
   const [geo, setGeo] = useState<Geography | null>(null),
     [error, setError] = useState(false),
     [dpr, setDpr] = useState(1.5);
@@ -498,16 +618,19 @@ export default function Globe(props: Props) {
   if (error)
     return (
       <div className="globe-loading">
-        The atlas could not load. Reload to reconnect.
+        {tr("The atlas could not load. Reload to reconnect. ")}
       </div>
     );
   return (
     <div
       className="globe-canvas"
-      aria-label="Interactive world globe. Drag to rotate. Pinch or scroll to zoom."
+      aria-label={tr(
+        "Interactive world globe. Drag to rotate. Pinch or scroll to zoom.",
+      )}
     >
       {geo ? (
         <Canvas
+          frameloop={props.paused ? "demand" : "always"}
           camera={{
             position: position(24, 24, 6.6).toArray(),
             fov: 42,
@@ -522,7 +645,7 @@ export default function Globe(props: Props) {
           }}
           fallback={
             <div className="globe-loading">
-              WebGL is unavailable. Explore every exchange in Markets.
+              {tr("WebGL is unavailable. Explore every exchange in Markets. ")}
             </div>
           }
         >
@@ -535,7 +658,7 @@ export default function Globe(props: Props) {
       ) : (
         <div className="globe-loading">
           <span className="loading-orbit" />
-          Mapping your world…
+          {tr("Mapping your world… ")}
         </div>
       )}
     </div>

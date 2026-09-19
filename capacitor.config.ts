@@ -3,10 +3,10 @@ const config: CapacitorConfig = {
   appId: "com.meridian.marketworld",
   appName: "Meridian",
   webDir: "dist",
-  backgroundColor: "#0b1014",
+  backgroundColor: "#f5f2e9",
   ios: {
     contentInset: "never",
-    backgroundColor: "#0b1014",
+    backgroundColor: "#f5f2e9",
     preferredContentMode: "mobile",
     scrollEnabled: false,
   },

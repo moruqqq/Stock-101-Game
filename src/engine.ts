@@ -1,4 +1,10 @@
-import { hubs, isTrading, type Company, type MarketEvent } from "./data";
+import {
+  hubs,
+  isTrading,
+  sectorImpact,
+  type Company,
+  type MarketEvent,
+} from "./data";
 export interface Holding {
   symbol: string;
   quantity: number;
@@ -79,11 +85,9 @@ export function movePrices(
               (e.scope === "LOCAL" && e.hub === c.hub))
           ? 0.4
           : 0;
-      const inverse =
-        e.category === "Energy" && ["Airlines", "Logistics"].includes(c.sector)
-          ? -1
-          : 1;
-      return sum + e.impact * relevant * (1 - age / 2) * 0.001 * inverse;
+      return (
+        sum + sectorImpact(e, c.sector) * relevant * (1 - age / 2) * 0.0025
+      );
     }, 0);
     const regionTrend = Math.sin(now / 5400000 + h.lat) * 0.00015,
       sectorTrend = Math.cos(now / 4200000 + c.sector.length) * 0.00012;
@@ -96,7 +100,7 @@ export function movePrices(
             regionTrend +
             sectorTrend +
             c.sentiment * 0.0004 +
-            eventImpact +
+            Math.max(-0.004, Math.min(0.004, eventImpact)) +
             (random() - 0.5) * c.volatility) *
           100,
       ) / 100,

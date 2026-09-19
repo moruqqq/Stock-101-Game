@@ -1,3 +1,6 @@
+import { searchText, numberLocale } from "./localeFormat";
+import { translate } from "./locales/catalog";
+import { useLocale } from "./Locale";
 import { useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -50,37 +53,51 @@ export function MarketsScreen({
   openMarket: (id: string) => void;
   openStock: (s: string) => void;
 }) {
+  const { tr, report } = useLocale();
   const [region, setRegion] = useState("All"),
     [search, setSearch] = useState("");
   const filtered = hubs.filter(
     (h) =>
       (region === "All" || h.region === region) &&
-      `${h.name} ${h.country}`.toLowerCase().includes(search.toLowerCase()),
+      searchText(
+        [h.name, h.country, h.region]
+          .flatMap((text) => [text, translate(text, "tr")])
+          .join(" "),
+      ).includes(searchText(search)),
   );
   const stockResults = search
     ? game.companies.filter((c) =>
-        `${c.name} ${c.symbol}`.toLowerCase().includes(search.toLowerCase()),
+        searchText(
+          [c.name, c.symbol, c.sector, c.country]
+            .flatMap((text) => [text, translate(text, "tr")])
+            .join(" "),
+        ).includes(searchText(search)),
       )
     : [];
   return (
     <main className="scroll-page">
       <div className="page-container">
-        <PageHeader title="A world of opportunity." eyebrow="GLOBAL EXCHANGES">
+        <PageHeader
+          title={tr("Markets around the world.")}
+          eyebrow="THE NEIGHBOURHOOD MARKETS"
+        >
           <span className="page-counter">
             <Radio size={15} />
-            {hubs.filter((h) => isTrading(h, game.now)).length} markets trading
-            now
+            {tr(hubs.filter((h) => isTrading(h, game.now)).length)}{" "}
+            {tr(" markets trading now ")}
           </span>
         </PageHeader>
         <div className="search-field">
           <Search size={16} />
           <input
-            aria-label="Search markets and companies"
-            placeholder="Find a market or company"
+            aria-label={tr("Search markets and companies")}
+            placeholder={tr("Find a market or company")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <span>14 EXCHANGES</span>
+          <span>
+            {tr(hubs.length)} {tr(" LITTLE EXCHANGES")}
+          </span>
         </div>
         <div className="filter-tabs">
           {["All", "Americas", "Europe", "Asia", "Middle East", "Oceania"].map(
@@ -90,14 +107,14 @@ export function MarketsScreen({
                 className={region === r ? "active" : ""}
                 onClick={() => setRegion(r)}
               >
-                {r}
+                {tr(r)}
               </button>
             ),
           )}
         </div>
         {stockResults.length > 0 && (
           <section className="content-section">
-            <span className="eyebrow">COMPANIES</span>
+            <span className="eyebrow">{tr("COMPANIES")}</span>
             {stockResults.map((c) => (
               <StockRow
                 key={c.symbol}
@@ -121,16 +138,17 @@ export function MarketsScreen({
               >
                 <div className="exchange-top">
                   <span className="exchange-number">
-                    {String(hubs.indexOf(h) + 1).padStart(2, "0")}
+                    {tr(String(hubs.indexOf(h) + 1).padStart(2, "0"))}
                   </span>
                   <StatusBadge hub={h} now={game.now} />
                 </div>
                 <div className="exchange-city">
-                  <h2>{h.name}</h2>
+                  <h2>{tr(h.name)}</h2>
                   <ArrowUpRight size={19} />
                 </div>
                 <p>
-                  {h.country} <span>·</span> {localTime(game.now, h.zone)} local
+                  {tr(h.country)} <span>·</span>{" "}
+                  {tr(localTime(game.now, h.zone))} {tr(" local ")}
                 </p>
                 <Chart
                   data={makeHistory(index, change)}
@@ -138,14 +156,18 @@ export function MarketsScreen({
                   negative={change < 0}
                 />
                 <div className="exchange-value">
-                  <strong>{money(index, "")}</strong>
+                  <strong>{tr(money(index, ""))}</strong>
                   <Change value={change} />
                 </div>
                 <div className="exchange-bottom">
-                  <span>{stocks.length} companies</span>
                   <span>
-                    {isTrading(h, game.now) ? "Closes" : "Opens"} in{" "}
-                    {duration(session(h, game.now).remaining)}
+                    {tr(stocks.length)} {tr(" companies")}
+                  </span>
+                  <span>
+                    {tr(isTrading(h, game.now) ? "Closes" : "Opens")}{" "}
+                    {tr(" in")}
+                    {tr(" ")}
+                    {tr(duration(session(h, game.now).remaining))}
                   </span>
                 </div>
               </button>
@@ -154,13 +176,14 @@ export function MarketsScreen({
         </div>
         {!filtered.length && !stockResults.length && (
           <Empty
-            title="No markets found"
+            title={tr("No markets found")}
             text="Try a city, country, company name, or ticker symbol."
           />
         )}
         <p className="fine-print">
-          Fictional exchanges · Daily prototype sessions · All prices are
-          simulated
+          {tr(
+            "Fictional exchanges · Daily prototype sessions · All prices are simulated ",
+          )}
         </p>
       </div>
     </main>
@@ -179,6 +202,7 @@ export function MarketScreen({
   openStock: (s: string) => void;
   openStory: (e: MarketEvent) => void;
 }) {
+  const { tr, report } = useLocale();
   const h = hubs.find((h) => h.id === id)!,
     stocks = game.companies.filter((c) => c.hub === id),
     [tab, setTab] = useState("All companies");
@@ -196,7 +220,7 @@ export function MarketScreen({
     <main className="scroll-page">
       <div className="page-container">
         <PageHeader
-          title={`${h.name} Exchange`}
+          title={tr(`${h.name} Exchange`)}
           eyebrow={`${h.country.toUpperCase()} / NEXUS MARKETS`}
           back={back}
         >
@@ -205,22 +229,26 @@ export function MarketScreen({
         <div className="market-session">
           <span>
             <Clock3 size={13} />
-            {localTime(game.now, h.zone, true)} LOCAL
+            {tr(localTime(game.now, h.zone, true))} {tr(" LOCAL ")}
           </span>
           <span>
-            {isTrading(h, game.now) ? "CLOSES" : "OPENS"} IN{" "}
-            <b>{duration(session(h, game.now).remaining)}</b>
+            {tr(isTrading(h, game.now) ? "CLOSES" : "OPENS")} {tr(" IN")}
+            {tr(" ")}
+            <b>{tr(duration(session(h, game.now).remaining))}</b>
           </span>
         </div>
         <div className="market-layout">
           <section className="chart-panel">
             <div className="index-heading">
               <div>
-                <span className="eyebrow">NEXUS {h.name.toUpperCase()}</span>
-                <h2>{money(index, "")}</h2>
+                <span className="eyebrow">
+                  {tr("NEXUS ")}
+                  {tr(h.name.toUpperCase())}
+                </span>
+                <h2>{tr(money(index, ""))}</h2>
                 <Change value={avg} />
               </div>
-              <span className="subtle-pill">INTRADAY</span>
+              <span className="subtle-pill">{tr("INTRADAY")}</span>
             </div>
             <Chart
               data={makeHistory(index, avg, 72)}
@@ -228,38 +256,46 @@ export function MarketScreen({
               interactive
             />
             <div className="chart-labels">
-              <span>{`${Math.floor(h.open / 60)}:${String(h.open % 60).padStart(2, "0")}`}</span>
-              <span>LOCAL SESSION</span>
-              <span>{`${Math.floor(h.close / 60)}:${String(h.close % 60).padStart(2, "0")}`}</span>
+              <span>
+                {tr(
+                  `${Math.floor(h.open / 60)}:${String(h.open % 60).padStart(2, "0")}`,
+                )}
+              </span>
+              <span>{tr("LOCAL SESSION")}</span>
+              <span>
+                {tr(
+                  `${Math.floor(h.close / 60)}:${String(h.close % 60).padStart(2, "0")}`,
+                )}
+              </span>
             </div>
             <div className="stats-strip">
               <div>
-                <span>MARKET VOLUME</span>
-                <b>{compact(stocks.reduce((s, c) => s + c.volume, 0))}</b>
+                <span>{tr("MARKET VOLUME")}</span>
+                <b>{tr(compact(stocks.reduce((s, c) => s + c.volume, 0)))}</b>
               </div>
               <div>
-                <span>ADVANCING</span>
+                <span>{tr("ADVANCING")}</span>
                 <b className="positive">
-                  {stocks.filter((c) => changeOf(c) > 0).length}
+                  {tr(stocks.filter((c) => changeOf(c) > 0).length)}
                 </b>
               </div>
               <div>
-                <span>DECLINING</span>
+                <span>{tr("DECLINING")}</span>
                 <b className="negative">
-                  {stocks.filter((c) => changeOf(c) < 0).length}
+                  {tr(stocks.filter((c) => changeOf(c) < 0).length)}
                 </b>
               </div>
             </div>
           </section>
           <section className="sector-panel">
-            <span className="eyebrow">SECTOR PERFORMANCE</span>
+            <span className="eyebrow">{tr("SECTOR PERFORMANCE")}</span>
             {sectors.map((s) => {
               const cs = stocks.filter((c) => c.sector === s),
                 v = cs.reduce((a, c) => a + changeOf(c), 0) / cs.length;
               return (
                 <div className="sector-row" key={s}>
                   <div>
-                    <span>{s}</span>
+                    <span>{tr(s)}</span>
                     <Change value={v} />
                   </div>
                   <div className="sector-track">
@@ -274,7 +310,9 @@ export function MarketScreen({
               );
             })}
             <p className="fine-print">
-              Sector performance reflects listed companies in this prototype.
+              {tr(
+                "Sector performance reflects listed companies in this prototype. ",
+              )}
             </p>
           </section>
         </div>
@@ -286,7 +324,7 @@ export function MarketScreen({
                 key={t}
                 onClick={() => setTab(t)}
               >
-                {t}
+                {tr(t)}
               </button>
             ),
           )}
@@ -310,7 +348,10 @@ export function MarketScreen({
         </div>
         <section className="content-section">
           <div className="section-heading">
-            <span className="eyebrow">FROM {h.name.toUpperCase()}</span>
+            <span className="eyebrow">
+              {tr("FROM ")}
+              {tr(h.name.toUpperCase())}
+            </span>
             <Radio size={14} />
           </div>
           {game.events
@@ -327,9 +368,9 @@ export function MarketScreen({
               >
                 <span className="event-dot" />
                 <span>
-                  {e.headline}
+                  {report(e, "headline")}
                   <small>
-                    {e.category} · {e.scope.toLowerCase()}
+                    {tr(e.category)} · {tr(e.scope.toLowerCase())}
                   </small>
                 </span>
                 <ArrowUpRight size={16} />
@@ -353,6 +394,7 @@ export function StockScreen({
   order: (side: "BUY" | "SELL") => void;
   openStory: (e: MarketEvent) => void;
 }) {
+  const { tr, report } = useLocale();
   const c = game.companies.find((c) => c.symbol === symbol)!,
     h = hubs.find((h) => h.id === c.hub)!,
     [period, setPeriod] = useState("1D");
@@ -373,25 +415,25 @@ export function StockScreen({
     <main className="scroll-page stock-page">
       <div className="page-container">
         <PageHeader
-          title={c.symbol}
+          title={tr(c.symbol)}
           eyebrow={`${h.name.toUpperCase()} / ${c.sector.toUpperCase()}`}
           back={back}
         >
           <StatusBadge hub={h} now={game.now} />
         </PageHeader>
         <div className="company-subheading">
-          <h2>{c.name}</h2>
-          <span>{h.currency}</span>
+          <h2>{tr(c.name)}</h2>
+          <span>{tr(h.currency)}</span>
         </div>
         <section className="stock-chart-panel">
-          <div className="stock-big-price">{money(c.price, h.mark)}</div>
+          <div className="stock-big-price">{tr(money(c.price, h.mark))}</div>
           <div className="stock-delta">
             <span className={changeOf(c) >= 0 ? "positive" : "negative"}>
-              {c.price >= c.previousClose ? "+" : ""}
-              {money(c.price - c.previousClose, h.mark)}
+              {tr(c.price >= c.previousClose ? "+" : "")}
+              {tr(money(c.price - c.previousClose, h.mark))}
             </span>
             <Change value={changeOf(c)} />
-            <small>TODAY</small>
+            <small>{tr("TODAY")}</small>
           </div>
           <Chart
             data={history}
@@ -406,45 +448,58 @@ export function StockScreen({
                 className={period === p ? "active" : ""}
                 onClick={() => setPeriod(p)}
               >
-                {p}
+                {tr(p)}
               </button>
             ))}
           </div>
           <p className="chart-history-note">
-            {period === "1D"
-              ? "Live session · drag chart to inspect"
-              : "Illustrative historical performance · prototype data"}
+            {tr(
+              period === "1D"
+                ? "Live session · drag chart to inspect"
+                : "Illustrative historical performance · prototype data",
+            )}
           </p>
         </section>
         <div className="financial-grid">
           {[
-            ["Open", money(c.open, h.mark)],
+            ["Open price", money(c.open, h.mark)],
             ["High", money(c.high, h.mark)],
             ["Low", money(c.low, h.mark)],
             ["Volume", compact(c.volume)],
             ["Market cap", h.mark + compact(c.marketCap)],
-            ["P/E ratio", c.PE.toFixed(1)],
+            [
+              "P/E ratio",
+              c.PE.toLocaleString(numberLocale(), {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+              }),
+            ],
           ].map(([k, v]) => (
             <div key={k}>
-              <span>{k}</span>
-              <b>{v}</b>
+              <span>{tr(k)}</span>
+              <b>{tr(v)}</b>
             </div>
           ))}
         </div>
         {owned && (
           <div className="owned-banner">
             <div>
-              <span className="eyebrow">YOUR POSITION</span>
-              <strong>{owned.quantity} shares</strong>
+              <span className="eyebrow">{tr("YOUR POSITION")}</span>
+              <strong>
+                {tr(owned.quantity)} {tr(" shares")}
+              </strong>
             </div>
             <div>
-              <small>Average {money(owned.average, h.mark)}</small>
+              <small>
+                {tr("Average ")}
+                {tr(money(owned.average, h.mark))}
+              </small>
               <Change value={(c.price / owned.average - 1) * 100} />
             </div>
           </div>
         )}
         <section className="content-section">
-          <span className="eyebrow">THE COMPANY, AT A GLANCE</span>
+          <span className="eyebrow">{tr("THE COMPANY, AT A GLANCE")}</span>
           <div className="fundamentals">
             {[
               ["Revenue", h.mark + compact(c.revenue)],
@@ -456,19 +511,23 @@ export function StockScreen({
               ["Headquarters", c.city],
             ].map(([k, v]) => (
               <div key={k}>
-                <span>{k}</span>
-                <b>{v}</b>
+                <span>{tr(k)}</span>
+                <b>{tr(v)}</b>
               </div>
             ))}
           </div>
         </section>
         <section className="content-section">
-          <span className="eyebrow">RELATED INTELLIGENCE</span>
+          <span className="eyebrow">{tr("RELATED INTELLIGENCE")}</span>
           {game.events
             .filter(
               (e) =>
                 e.companies.includes(c.symbol) ||
-                (e.scope === "GLOBAL" && e.sectors.includes(c.sector)),
+                (e.sectors.includes(c.sector) &&
+                  (e.scope === "GLOBAL" ||
+                    e.hub === c.hub ||
+                    (e.scope === "REGIONAL" &&
+                      hubs.find((h) => h.id === e.hub)?.region === h.region))),
             )
             .slice(0, 3)
             .map((e) => (
@@ -479,9 +538,9 @@ export function StockScreen({
               >
                 <span className="event-dot" />
                 <span>
-                  {e.headline}
+                  {report(e, "headline")}
                   <small>
-                    {e.location} · {e.category}
+                    {tr(e.location)} · {tr(e.category)}
                   </small>
                 </span>
                 <ArrowUpRight size={16} />
@@ -490,17 +549,21 @@ export function StockScreen({
         </section>
         <div className="trading-actions">
           <button className="primary-button" onClick={() => order("BUY")}>
-            Buy {c.symbol}
+            {tr("Buy ")}
+            {tr(c.symbol)}
             <Plus size={16} />
           </button>
           <button className="secondary-button" onClick={() => order("SELL")}>
-            Sell {c.symbol}
+            {tr("Sell ")}
+            {tr(c.symbol)}
             <ArrowUpRight size={16} />
           </button>
         </div>
         {!isTrading(h, game.now) && (
           <p className="closed-note">
-            Exchange closed · Orders become available when this market opens.
+            {tr(
+              "Exchange closed · Orders become available when this market opens. ",
+            )}
           </p>
         )}
       </div>
@@ -518,6 +581,7 @@ export function TradeSheet({
   game: Game;
   close: () => void;
 }) {
+  const { tr, report } = useLocale();
   const c = game.companies.find((c) => c.symbol === symbol)!,
     h = hubs.find((h) => h.id === c.hub)!,
     held =
@@ -549,9 +613,11 @@ export function TradeSheet({
   };
   return (
     <Sheet
-      title={
-        filled ? "Order filled" : `${side === "BUY" ? "Buy" : "Sell"} ${symbol}`
-      }
+      title={tr(
+        filled
+          ? "Order filled"
+          : `${side === "BUY" ? "Buy" : "Sell"} ${symbol}`,
+      )}
       eyebrow={filled ? "EXECUTION CONFIRMED" : "MARKET ORDER"}
       close={close}
     >
@@ -561,36 +627,43 @@ export function TradeSheet({
             <Check size={30} />
           </span>
           <h3>
-            {filled.qty} {symbol}
+            {tr(filled.qty)} {tr(symbol)}
           </h3>
           <p>
-            {side === "BUY" ? "Purchased" : "Sold"} at{" "}
-            {money(filled.price, h.mark)} per share
+            {tr(side === "BUY" ? "Purchased" : "Sold")} {tr(" at")}
+            {tr(" ")}
+            {tr(money(filled.price, h.mark))} {tr(" per share ")}
           </p>
           <div className="order-summary">
-            <span>Total {side === "BUY" ? "cost" : "proceeds"}</span>
-            <b>{money(filled.price * filled.qty, h.mark)}</b>
+            <span>
+              {tr("Total ")}
+              {tr(side === "BUY" ? "cost" : "proceeds")}
+            </span>
+            <b>{tr(money(filled.price * filled.qty, h.mark))}</b>
           </div>
           <div className="order-summary">
-            <span>Settled in USD</span>
-            <b>{money(filled.price * filled.qty * h.fx)}</b>
+            <span>{tr("Settled in USD")}</span>
+            <b>{tr(money(filled.price * filled.qty * h.fx))}</b>
           </div>
-          <p className="sheet-note">Your portfolio has been updated.</p>
+          <p className="sheet-note">{tr("Your portfolio has been updated.")}</p>
           <button className="primary-button full" onClick={close}>
-            Continue exploring <ArrowRight size={17} />
+            {tr("Continue exploring ")}
+            <ArrowRight size={17} />
           </button>
         </div>
       ) : (
         <>
           <div className="order-market-price">
-            <span>MARKET PRICE</span>
-            <strong>{money(c.price, h.mark)}</strong>
+            <span>{tr("MARKET PRICE")}</span>
+            <strong>{tr(money(c.price, h.mark))}</strong>
             <StatusBadge hub={h} now={game.now} />
           </div>
-          <span className="eyebrow quantity-label">NUMBER OF SHARES</span>
+          <span className="eyebrow quantity-label">
+            {tr("NUMBER OF SHARES")}
+          </span>
           <div className="quantity-control">
             <button
-              aria-label="Decrease quantity"
+              aria-label={tr("Decrease quantity")}
               onClick={() => setQuantity(Math.max(0, quantity - 10))}
             >
               <Minus size={19} />
@@ -598,7 +671,7 @@ export function TradeSheet({
             <input
               type="number"
               inputMode="numeric"
-              aria-label="Quantity"
+              aria-label={tr("Quantity")}
               min="0"
               step="1"
               value={quantity}
@@ -608,7 +681,7 @@ export function TradeSheet({
               }}
             />
             <button
-              aria-label="Increase quantity"
+              aria-label={tr("Increase quantity")}
               onClick={() => setQuantity(quantity + 10)}
             >
               <Plus size={19} />
@@ -617,51 +690,63 @@ export function TradeSheet({
           <div className="quantity-shortcuts">
             {[10, 50, 100].map((n) => (
               <button key={n} onClick={() => setQuantity(n)}>
-                {n}
+                {tr(n)}
               </button>
             ))}
-            <button onClick={() => setQuantity(max)}>Max · {max}</button>
+            <button onClick={() => setQuantity(max)}>
+              {tr("Max · ")}
+              {tr(max)}
+            </button>
           </div>
           <div className="order-summary">
-            <span>Estimated {side === "BUY" ? "cost" : "proceeds"}</span>
-            <b>{money(total, h.mark)}</b>
+            <span>
+              {tr("Estimated ")}
+              {tr(side === "BUY" ? "cost" : "proceeds")}
+            </span>
+            <b>{tr(money(total, h.mark))}</b>
           </div>
           <div className="order-summary">
-            <span>USD settlement</span>
-            <b>{money(usd)}</b>
+            <span>{tr("USD settlement")}</span>
+            <b>{tr(money(usd))}</b>
           </div>
           <div className="order-summary">
-            <span>{side === "BUY" ? "Available cash" : "Shares owned"}</span>
-            <b>{side === "BUY" ? money(game.account.cash) : held}</b>
+            <span>
+              {tr(side === "BUY" ? "Available cash" : "Shares owned")}
+            </span>
+            <b>{tr(side === "BUY" ? money(game.account.cash) : held)}</b>
           </div>
           {h.currency !== "USD" && (
             <p className="sheet-note">
-              Prototype exchange rate: 1 {h.currency} = ${h.fx}. All portfolio
-              cash is held in USD. No fees.
+              {tr("Prototype exchange rate: 1 ")}
+              {tr(h.currency)} = ${tr(h.fx)}
+              {tr(". All portfolio cash is held in USD. No fees. ")}
             </p>
           )}
           {!isTrading(h, game.now) && (
             <p className="order-error">
-              This market is closed. Opens in{" "}
-              {duration(session(h, game.now).remaining)}. Use the simulation
-              controls to change time.
+              {tr("This market is closed. Opens in")}
+              {tr(" ")}
+              {tr(duration(session(h, game.now).remaining))}
+              {tr(". Use the simulation controls to change time. ")}
             </p>
           )}
           {quantity > max && (
             <p className="order-error">
-              {side === "BUY"
-                ? "Insufficient cash for this order."
-                : "You do not own enough shares."}
+              {tr(
+                side === "BUY"
+                  ? "Insufficient cash for this order."
+                  : "You do not own enough shares.",
+              )}
             </p>
           )}
           {!Number.isInteger(quantity) && (
             <p className="order-error">
-              Please enter a whole number of shares.
+              {tr("Please enter a whole number of shares. ")}
             </p>
           )}
           {error && (
             <p role="alert" className="order-error">
-              {error}
+              {tr(error)}
             </p>
           )}
           <button
@@ -669,11 +754,11 @@ export function TradeSheet({
             disabled={!valid}
             onClick={execute}
           >
-            {side} {quantity} {symbol}
+            {tr(side)} {tr(quantity)} {tr(symbol)}
             <ArrowRight size={17} />
           </button>
           <p className="fine-print">
-            Instant execution at the current simulated price.
+            {tr("Instant execution at the current simulated price. ")}
           </p>
         </>
       )}
@@ -689,6 +774,7 @@ export function PortfolioScreen({
   openStock: (s: string) => void;
   world: () => void;
 }) {
+  const { tr, report } = useLocale();
   const { account, companies, value } = game,
     [period, setPeriod] = useState("1D");
   const basis =
@@ -727,36 +813,40 @@ export function PortfolioScreen({
   return (
     <main className="scroll-page">
       <div className="page-container">
-        <PageHeader title="Your global footprint." eyebrow="PORTFOLIO / USD">
+        <PageHeader
+          title={tr("Your global portfolio.")}
+          eyebrow="LOOK AT YOU, GOING GLOBAL / USD"
+        >
           <button className="text-button" onClick={world}>
-            <Globe2 size={16} /> View on globe <ArrowUpRight size={15} />
+            <Globe2 size={16} /> {tr(" View on globe ")}
+            <ArrowUpRight size={15} />
           </button>
         </PageHeader>
         <div className="portfolio-layout">
           <section className="portfolio-overview">
-            <span className="eyebrow">TOTAL PORTFOLIO VALUE</span>
-            <h2>{money(value)}</h2>
+            <span className="eyebrow">{tr("TOTAL PORTFOLIO VALUE")}</span>
+            <h2>{tr(money(value))}</h2>
             <div className="return-grid">
               <div>
-                <span>TODAY</span>
+                <span>{tr("TODAY")}</span>
                 <b className={today >= 0 ? "positive" : "negative"}>
-                  {today >= 0 ? "+" : ""}
-                  {money(today)}
+                  {tr(today >= 0 ? "+" : "")}
+                  {tr(money(today))}
                 </b>
-                <small>{pct((today / (value - today)) * 100)}</small>
+                <small>{tr(pct((today / (value - today)) * 100))}</small>
               </div>
               <div>
-                <span>TOTAL RETURN</span>
+                <span>{tr("TOTAL RETURN")}</span>
                 <b className={total >= 0 ? "positive" : "negative"}>
-                  {total >= 0 ? "+" : ""}
-                  {money(total)}
+                  {tr(total >= 0 ? "+" : "")}
+                  {tr(money(total))}
                 </b>
-                <small>{pct((total / basis) * 100)}</small>
+                <small>{tr(pct((total / basis) * 100))}</small>
               </div>
               <div>
-                <span>AVAILABLE CASH</span>
-                <b>{money(account.cash)}</b>
-                <small>Ready to invest</small>
+                <span>{tr("AVAILABLE CASH")}</span>
+                <b>{tr(money(account.cash))}</b>
+                <small>{tr("Ready to invest")}</small>
               </div>
             </div>
             <Chart
@@ -778,17 +868,19 @@ export function PortfolioScreen({
                   className={period === p ? "active" : ""}
                   onClick={() => setPeriod(p)}
                 >
-                  {p}
+                  {tr(p)}
                 </button>
               ))}
             </div>
             <p className="chart-history-note">
-              Illustrative performance · current value and returns are live
+              {tr(
+                "Illustrative performance · current value and returns are live ",
+              )}
             </p>
           </section>
           <section className="exposure-panel">
             <div className="section-heading">
-              <span className="eyebrow">GEOGRAPHIC EXPOSURE</span>
+              <span className="eyebrow">{tr("GEOGRAPHIC EXPOSURE")}</span>
               <Globe2 size={16} />
             </div>
             <div className="exposure-bar">
@@ -809,19 +901,30 @@ export function PortfolioScreen({
               .map(([country, v], i) => (
                 <div className="exposure-row" key={country}>
                   <i style={{ background: colors[i % colors.length] }} />
-                  <span>{country}</span>
-                  <b>{((v / value) * 100).toFixed(1)}%</b>
+                  <span>{tr(country)}</span>
+                  <b>
+                    {tr(
+                      ((v / value) * 100).toLocaleString(numberLocale(), {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      }),
+                    )}
+                    %
+                  </b>
                 </div>
               ))}
             <button className="exposure-world" onClick={world}>
-              See your world of investments <ArrowRight size={15} />
+              {tr("See your world of investments ")}
+              <ArrowRight size={15} />
             </button>
           </section>
         </div>
         <section className="content-section">
           <div className="section-heading">
-            <span className="eyebrow">YOUR HOLDINGS</span>
-            <small className="muted">{account.holdings.length} POSITIONS</small>
+            <span className="eyebrow">{tr("YOUR HOLDINGS")}</span>
+            <small className="muted">
+              {tr(account.holdings.length)} {tr(" POSITIONS")}
+            </small>
           </div>
           {account.holdings.length ? (
             account.holdings.map((p) => {
@@ -837,33 +940,37 @@ export function PortfolioScreen({
             })
           ) : (
             <Empty
-              title="Your next chapter starts here"
+              title={tr("Your next chapter starts here")}
               text="Explore an open exchange and place your first order."
             />
           )}
         </section>
         {game.orders.length > 0 && (
           <section className="content-section">
-            <span className="eyebrow">RECENT ACTIVITY</span>
+            <span className="eyebrow">{tr("RECENT ACTIVITY")}</span>
             {game.orders.slice(0, 6).map((o) => (
               <div className="activity-row" key={o.id}>
                 <span className={o.side === "BUY" ? "positive" : "muted"}>
-                  {o.side}
+                  {tr(o.side)}
                 </span>
                 <b>
-                  {o.quantity} {o.symbol}
+                  {tr(o.quantity)} {tr(o.symbol)}
                 </b>
                 <span>
-                  {money(
-                    o.price,
-                    hubs.find(
-                      (h) =>
-                        h.id ===
-                        companies.find((c) => c.symbol === o.symbol)!.hub,
-                    )!.mark,
+                  {tr(
+                    money(
+                      o.price,
+                      hubs.find(
+                        (h) =>
+                          h.id ===
+                          companies.find((c) => c.symbol === o.symbol)!.hub,
+                      )!.mark,
+                    ),
                   )}
                 </span>
-                <small>{localTime(o.timestamp, "UTC")} UTC</small>
+                <small>
+                  {tr(localTime(o.timestamp, "UTC"))} {tr(" UTC")}
+                </small>
               </div>
             ))}
           </section>
@@ -872,199 +979,14 @@ export function PortfolioScreen({
     </main>
   );
 }
-export function NewsScreen({
-  game,
-  openStory,
-  world,
-}: {
-  game: Game;
-  openStory: (e: MarketEvent) => void;
-  world: () => void;
-}) {
-  const [filter, setFilter] = useState("Global");
-  const visible = game.events.filter(
-      (e) => e.scope === "GLOBAL" || game.discovered.includes(e.id),
-    ),
-    filtered = visible.filter(
-      (e) =>
-        filter === "Global" ||
-        hubs.find((h) => h.id === e.hub)!.region === filter,
-    );
-  const locked = game.events.length - visible.length;
-  return (
-    <main className="scroll-page">
-      <div className="page-container">
-        <PageHeader
-          title="The world, in perspective."
-          eyebrow="MERIDIAN INTELLIGENCE"
-        >
-          <span className="page-counter">
-            <Radio size={15} /> {visible.length} stories in view
-          </span>
-        </PageHeader>
-        <div className="filter-tabs">
-          {[
-            "Global",
-            "Americas",
-            "Europe",
-            "Asia",
-            "Middle East",
-            "Oceania",
-          ].map((f) => (
-            <button
-              key={f}
-              className={f === filter ? "active" : ""}
-              onClick={() => setFilter(f)}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-        <div className="news-grid">
-          {filtered.map((e, i) => (
-            <button
-              className={`news-feed-card ${i === 0 ? "lead-story" : ""}`}
-              key={e.id}
-              onClick={() => openStory(e)}
-            >
-              <div className="story-meta">
-                <span>{e.location.toUpperCase()}</span>
-                <span>{localTime(e.timestamp, "UTC")} UTC</span>
-                <span>{e.scope}</span>
-              </div>
-              {i === 0 && (
-                <div className="news-illustration">
-                  <Globe2 />
-                  <span className="orbit-line" />
-                  <span className="news-coordinate">
-                    {Math.abs(e.latitude).toFixed(2)}°
-                    {e.latitude >= 0 ? "N" : "S"} &nbsp;{" "}
-                    {Math.abs(e.longitude).toFixed(2)}°
-                    {e.longitude >= 0 ? "E" : "W"}
-                  </span>
-                  <span className="illustration-label">
-                    SIGNALS FROM
-                    <br />
-                    {e.location.toUpperCase()}
-                  </span>
-                  <i className="event-dot" />
-                </div>
-              )}
-              <span className="news-category">{e.category.toUpperCase()}</span>
-              <h2>{e.headline}</h2>
-              <p>{e.body.split(". ")[1]}.</p>
-              <div className="story-footer">
-                <div className="impact-tags">
-                  {e.sectors.slice(0, 2).map((s) => (
-                    <span className="sector-tag" key={s}>
-                      {s} {e.impact > 0 ? "↗" : "↘"}
-                    </span>
-                  ))}
-                </div>
-                <ArrowUpRight size={18} />
-              </div>
-            </button>
-          ))}
-        </div>
-        {!filtered.length && (
-          <Empty
-            title="Nothing in view. Yet."
-            text="Explore this region on the globe to uncover its local stories."
-          />
-        )}
-        {locked > 0 && (
-          <button className="discovery-prompt" onClick={world}>
-            <LockKeyhole size={21} />
-            <div>
-              <h3>{locked} signals waiting to be discovered</h3>
-              <p>
-                Move closer to a region or city. The next opportunity could be
-                there.
-              </p>
-            </div>
-            <ArrowRight size={18} />
-          </button>
-        )}
-      </div>
-    </main>
-  );
-}
-export function StorySheet({
-  event,
-  game,
-  close,
-  openStock,
-  explore,
-}: {
-  event: MarketEvent;
-  game: Game;
-  close: () => void;
-  openStock: (s: string) => void;
-  explore: () => void;
-}) {
-  const h = hubs.find((h) => h.id === event.hub)!;
-  return (
-    <Sheet
-      title="Market intelligence"
-      eyebrow={`${event.scope} / ${event.category.toUpperCase()}`}
-      close={close}
-      wide
-    >
-      <article className="story-article">
-        <div className="article-location">
-          <span className="event-dot" />
-          {event.location}
-          <small>{localTime(event.timestamp, h.zone)} LOCAL</small>
-        </div>
-        <h1>{event.headline}</h1>
-        <p>{event.body}</p>
-        <div className="article-impact">
-          <span className="eyebrow">POSSIBLE MARKET IMPACT</span>
-          {event.sectors.map((s) => {
-            const positive =
-              event.category === "Energy" &&
-              ["Airlines", "Logistics"].includes(s)
-                ? false
-                : event.impact > 0;
-            return (
-              <div key={s}>
-                <span>{s}</span>
-                <span className={positive ? "positive" : "negative"}>
-                  {positive ? "↑ Upward pressure" : "↓ Downward pressure"}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        {event.companies.length > 0 && (
-          <div className="article-companies">
-            <span className="eyebrow">COMPANIES IN THIS STORY</span>
-            {event.companies.map((s) => {
-              const c = game.companies.find((c) => c.symbol === s);
-              return c ? (
-                <StockRow key={s} company={c} onClick={() => openStock(s)} />
-              ) : null;
-            })}
-          </div>
-        )}
-        <button className="secondary-button full" onClick={explore}>
-          <Globe2 size={17} /> Explore {event.location} Exchange{" "}
-          <ArrowUpRight size={15} />
-        </button>
-        <p className="fine-print">
-          Fictional intelligence generated for this simulation.
-        </p>
-      </article>
-    </Sheet>
-  );
-}
 export function DevSheet({ game, close }: { game: Game; close: () => void }) {
+  const { tr, report } = useLocale();
   const [hub, setHub] = useState("ist"),
     [time, setTime] = useState("14:30");
   const h = hubs.find((h) => h.id === hub)!;
   return (
     <Sheet
-      title="The world, on your time."
+      title={tr("Simulation controls.")}
       eyebrow="SIMULATION CONTROLS"
       close={close}
     >
@@ -1072,22 +994,27 @@ export function DevSheet({ game, close }: { game: Game; close: () => void }) {
         <div className="dev-clock">
           <Clock3 size={20} />
           <div>
-            <b>{localTime(game.now, h.zone, true)}</b>
-            <small>{h.name.toUpperCase()} LOCAL TIME</small>
+            <b>{tr(localTime(game.now, h.zone, true))}</b>
+            <small>
+              {tr(h.name.toUpperCase())} {tr(" LOCAL TIME")}
+            </small>
           </div>
-          <span className="subtle-pill">{game.speed}× SPEED</span>
+          <span className="subtle-pill">
+            {tr(game.speed)}
+            {tr("× SPEED")}
+          </span>
         </div>
         <label className="control-label">
-          FOCUS EXCHANGE
+          {tr("FOCUS EXCHANGE ")}
           <select value={hub} onChange={(e) => setHub(e.target.value)}>
             {hubs.map((h) => (
               <option key={h.id} value={h.id}>
-                {h.name} · {h.zone}
+                {tr(h.name)} · {tr(h.zone)}
               </option>
             ))}
           </select>
         </label>
-        <span className="eyebrow">CLOCK SPEED</span>
+        <span className="eyebrow">{tr("CLOCK SPEED")}</span>
         <div className="dev-speeds">
           {[1, 10, 60, 600].map((s) => (
             <button
@@ -1095,15 +1022,15 @@ export function DevSheet({ game, close }: { game: Game; close: () => void }) {
               className={s === game.speed ? "active" : ""}
               onClick={() => game.setSpeed(s)}
             >
-              {s === 1 ? "Realtime" : s + "×"}
+              {tr(s === 1 ? "Realtime" : s + "×")}
             </button>
           ))}
         </div>
         <label className="control-label">
-          SET LOCAL TIME
+          {tr("SET LOCAL TIME ")}
           <div className="time-input">
             <input
-              aria-label="Simulated local time"
+              aria-label={tr("Simulated local time")}
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
@@ -1113,7 +1040,8 @@ export function DevSheet({ game, close }: { game: Game; close: () => void }) {
                 if (time) game.setLocalClock(hub, time);
               }}
             >
-              Apply <ArrowRight size={14} />
+              {tr("Apply ")}
+              <ArrowRight size={14} />
             </button>
           </div>
         </label>
@@ -1126,13 +1054,21 @@ export function DevSheet({ game, close }: { game: Game; close: () => void }) {
                 game.setLocalClock(hub, t);
               }}
             >
-              {t}
+              {tr(t)}
             </button>
           ))}
         </div>
-        <span className="eyebrow">TRIGGER A SCENARIO</span>
+        <span className="eyebrow">{tr("GIVE THE WORLD A LITTLE NUDGE")}</span>
         <div className="scenario-grid">
           {[
+            "NEXT DISPATCH",
+            "COFFEE TRANSITION",
+            "LAKE SURPRISE",
+            "CAT TAKEOVER",
+            "FLYING BANK",
+            "GIANT DUCK",
+            "COFFEE GEYSER",
+            "SUN HOLIDAY",
             "MARKET OPEN",
             "MARKET CLOSE",
             "COMPANY NEWS",
@@ -1145,7 +1081,7 @@ export function DevSheet({ game, close }: { game: Game; close: () => void }) {
             "GLOBAL EVENT",
           ].map((k) => (
             <button key={k} onClick={() => game.trigger(k, hub)}>
-              {k.toLowerCase()}
+              {tr(k.toLowerCase())}
               <Plus size={12} />
             </button>
           ))}
@@ -1154,28 +1090,28 @@ export function DevSheet({ game, close }: { game: Game; close: () => void }) {
           <div>
             {game.sound ? <Volume2 size={18} /> : <VolumeX size={18} />}
             <span>
-              Subtle sound effects
-              <small>Bells, intelligence, and order fills</small>
+              {tr("Subtle sound effects ")}
+              <small>{tr("Bells, intelligence, and order fills")}</small>
             </span>
           </div>
           <button
             className={`switch ${game.sound ? "on" : ""}`}
             role="switch"
             aria-checked={game.sound}
-            aria-label="Sound effects"
+            aria-label={tr("Sound effects")}
             onClick={() => game.setSound(!game.sound)}
           >
             <i />
           </button>
         </div>
         <button className="secondary-button full" onClick={game.resetClock}>
-          Synchronize to real-world time <Clock3 size={15} />
+          {tr("Synchronize to real-world time ")}
+          <Clock3 size={15} />
         </button>
         <p className="sheet-note">
-          Prototype markets trade daily, including weekends. Time zones include
-          daylight saving. Prices update every three seconds in open markets;
-          event effects fade after two simulated hours. Refresh resets the
-          session.
+          {tr(
+            "Prototype markets trade daily, including weekends. Time zones include daylight saving. Prices update every three seconds in open markets; event effects fade after two simulated hours. Refresh resets the session. ",
+          )}
         </p>
       </div>
     </Sheet>

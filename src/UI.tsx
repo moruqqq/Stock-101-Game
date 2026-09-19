@@ -1,3 +1,5 @@
+import { useLocale, LanguageSwitcher } from "./Locale";
+import { decimalNumber } from "./localeFormat";
 import { useId, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, X } from "lucide-react";
@@ -12,20 +14,22 @@ import {
 } from "./data";
 
 export function StatusBadge({ hub, now }: { hub: Hub; now: number }) {
+  const { tr } = useLocale();
   const s = session(hub, now).status;
   return (
     <span className={`status-badge ${s.toLowerCase()}`}>
       <i
         className={`live-dot ${s === "PRE-MARKET" ? "amber" : s === "CLOSED" ? "grey" : ""}`}
       />
-      {s}
+      {tr(s)}
     </span>
   );
 }
 export function Change({ value }: { value: number }) {
+  const { tr } = useLocale();
   return (
     <span className={value >= 0 ? "positive" : "negative"}>
-      {value >= 0 ? "↗" : "↘"} {pct(value)}
+      {tr(value >= 0 ? "↗" : "↘")} {tr(pct(value))}
     </span>
   );
 }
@@ -40,18 +44,19 @@ export function PageHeader({
   back?: () => void;
   children?: ReactNode;
 }) {
+  const { tr } = useLocale();
   return (
     <header className="page-header">
       <div>
         {back && (
           <button className="back-button" onClick={back}>
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={16} /> {tr(" Back ")}
           </button>
         )}
-        <span className="eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
+        <span className="eyebrow">{tr(eyebrow)}</span>
+        <h1>{tr(title)}</h1>
       </div>
-      {children}
+      {tr(children)}
     </header>
   );
 }
@@ -66,6 +71,7 @@ export function Chart({
   negative?: boolean;
   interactive?: boolean;
 }) {
+  const { tr } = useLocale();
   const id = useId().replace(/:/g, ""),
     [hover, setHover] = useState<number | null>(null);
   const width = 600,
@@ -80,7 +86,7 @@ export function Chart({
     path = pts
       .map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(2)},${p[1].toFixed(2)}`)
       .join(" "),
-    color = negative ? "#da8585" : "#8bc5aa";
+    color = negative ? "#c8736b" : "#4b9c7b";
   return (
     <div
       className="chart-wrap"
@@ -108,7 +114,9 @@ export function Chart({
       <svg
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
-        aria-label={`Price chart, ${data[0].toFixed(2)} to ${data.at(-1)!.toFixed(2)}`}
+        aria-label={tr(
+          `Price chart, ${data[0].toFixed(2)} to ${data.at(-1)!.toFixed(2)}`,
+        )}
         role="img"
       >
         <defs>
@@ -124,7 +132,7 @@ export function Chart({
             x2={width}
             y1={height * y}
             y2={height * y}
-            stroke="#ffffff09"
+            stroke="#34556b12"
             strokeDasharray="3 6"
           />
         ))}
@@ -160,7 +168,7 @@ export function Chart({
             left: `${Math.min(80, (hover / (data.length - 1)) * 100)}%`,
           }}
         >
-          {data[hover].toFixed(2)}
+          {tr(decimalNumber(data[hover]))}
         </span>
       )}
     </div>
@@ -175,15 +183,16 @@ export function StockRow({
   onClick: () => void;
   subtitle?: string;
 }) {
+  const { tr } = useLocale();
   const h = hubs.find((h) => h.id === company.hub)!;
   return (
     <button className={`stock-row flash-${company.flash}`} onClick={onClick}>
       <span className={`stock-monogram sector-${company.sector.toLowerCase()}`}>
-        {company.symbol.slice(0, 2)}
+        {tr(company.symbol.slice(0, 2))}
       </span>
       <span className="stock-identity">
-        <b>{company.symbol}</b>
-        <small>{subtitle ?? company.name}</small>
+        <b>{tr(company.symbol)}</b>
+        <small>{tr(subtitle ?? company.name)}</small>
       </span>
       <span className="row-spark">
         <Chart
@@ -193,7 +202,7 @@ export function StockRow({
         />
       </span>
       <span className="stock-price">
-        <b>{money(company.price, h.mark)}</b>
+        <b>{tr(money(company.price, h.mark))}</b>
         <small>
           <Change value={changeOf(company)} />
         </small>
@@ -214,6 +223,7 @@ export function Sheet({
   children: ReactNode;
   wide?: boolean;
 }) {
+  const { tr } = useLocale();
   return (
     <motion.div
       className="modal-backdrop"
@@ -225,7 +235,7 @@ export function Sheet({
       <motion.section
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={tr(title)}
         className={`sheet ${wide ? "wide" : ""}`}
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -253,29 +263,31 @@ export function Sheet({
         <div className="sheet-handle" />
         <div className="sheet-header">
           <div>
-            <span className="eyebrow">{eyebrow}</span>
-            <h2>{title}</h2>
+            <span className="eyebrow">{tr(eyebrow)}</span>
+            <h2>{tr(title)}</h2>
           </div>
+          <LanguageSwitcher />
           <button
             autoFocus
             className="icon-button"
-            aria-label="Close dialog"
+            aria-label={tr("Close dialog")}
             onClick={close}
           >
             <X size={20} />
           </button>
         </div>
-        {children}
+        {tr(children)}
       </motion.section>
     </motion.div>
   );
 }
 export function Empty({ title, text }: { title: string; text: string }) {
+  const { tr } = useLocale();
   return (
     <div className="empty-state">
       <ArrowUpRight size={28} />
-      <h3>{title}</h3>
-      <p>{text}</p>
+      <h3>{tr(title)}</h3>
+      <p>{tr(text)}</p>
     </div>
   );
 }

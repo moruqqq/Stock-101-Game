@@ -1,4 +1,13 @@
-export type Region = "Americas" | "Europe" | "Asia" | "Middle East" | "Oceania";
+import { decimalNumber, numberLocale } from "./localeFormat";
+import {
+  scenarios,
+  type SceneKind,
+  type ScenarioKey,
+  scenarioKeys,
+  followupKeys,
+} from "./scenarios";
+export type Region =
+  "Americas" | "Europe" | "Asia" | "Middle East" | "Oceania" | "Africa";
 export type Status = "OPEN" | "CLOSING" | "PRE-MARKET" | "CLOSED";
 export interface Hub {
   id: string;
@@ -17,6 +26,22 @@ export interface Hub {
   change: number;
 }
 export const hubs: Hub[] = [
+  {
+    id: "nai",
+    name: "Nairobi",
+    country: "Kenya",
+    region: "Africa",
+    lat: -1.29,
+    lng: 36.82,
+    zone: "Africa/Nairobi",
+    open: 540,
+    close: 900,
+    currency: "KES",
+    mark: "KSh",
+    fx: 0.0077,
+    index: 1842.6,
+    change: 2.6,
+  },
   {
     id: "nyc",
     name: "New York",
@@ -298,6 +323,8 @@ const seeds: [string, string, string, string, number, number][] = [
   ["INDR", "Indra Bank", "mum", "Banking", 842, 1.1],
   ["VERD", "Verde Energy", "sao", "Energy", 38.2, 1.8],
   ["PRTA", "Porta Logistics", "sao", "Logistics", 24.6, -0.9],
+  ["POND", "Pond & Beyond", "nai", "Retail", 128.4, 3.8],
+  ["FLOAT", "Nile Float Logistics", "nai", "Logistics", 246.8, 5.2],
 ];
 export function makeHistory(price: number, change: number, count = 64) {
   return Array.from(
@@ -355,6 +382,13 @@ export interface MarketEvent {
   companies: string[];
   impact: number;
   timestamp: number;
+  chain?: string;
+  next?: string;
+  scene?: SceneKind;
+  scenario?: ScenarioKey;
+  effects?: Record<string, number>;
+  consequence?: string;
+  captions?: [string, string, string];
 }
 export function createEvent(
   id: string,
@@ -384,99 +418,93 @@ export function createEvent(
     body: `${headline} Market participants are assessing the implications across ${sectors.join(" and ").toLowerCase()}. Analysts expect increased activity as the next trading session develops. This fictional report influences the simulation; its effect gradually fades over the following two hours.`,
   };
 }
-export function initialEvents(now: number): MarketEvent[] {
-  return [
-    createEvent(
-      "e1",
-      "tok",
-      "GLOBAL",
-      "Technology",
-      "A new chapter for Japanese semiconductors",
-      ["Semiconductors", "Technology"],
-      ["TKYO"],
-      0.65,
-      now - 4 * 60000,
-    ),
-    createEvent(
-      "e2",
-      "dub",
-      "GLOBAL",
-      "Energy",
-      "Oil climbs as supply concerns ripple across markets",
-      ["Energy", "Airlines", "Logistics"],
-      ["DUNE", "AVEN"],
-      0.5,
-      now - 18 * 60000,
-    ),
-    createEvent(
-      "e3",
-      "fra",
-      "REGIONAL",
-      "Economy",
-      "European inflation cools. A rate cut moves into focus.",
-      ["Banking", "Retail"],
-      ["KERN", "CRWN"],
-      0.35,
-      now - 32 * 60000,
-    ),
-    createEvent(
-      "e4",
-      "ist",
-      "LOCAL",
-      "Company",
-      "Thrace wins landmark defense electronics contract",
-      ["Technology"],
-      ["THRA"],
-      0.8,
-      now - 8 * 60000,
-    ),
-    createEvent(
-      "e5",
-      "nyc",
-      "LOCAL",
-      "Rumor",
-      "Acquisition speculation puts Nova in the spotlight",
-      ["Technology"],
-      ["NOVA"],
-      0.45,
-      now - 54 * 60000,
-    ),
-    createEvent(
-      "e6",
-      "lon",
-      "GLOBAL",
-      "Policy",
-      "Central banks signal a measured path ahead",
-      ["Banking"],
-      ["CRWN", "ANSA"],
-      0.2,
-      now - 71 * 60000,
-    ),
-    createEvent(
-      "e7",
-      "sha",
-      "REGIONAL",
-      "Industry",
-      "New battery export rules weigh on Asian automakers",
-      ["Automotive"],
-      ["HIKR", "SHEN"],
-      -0.5,
-      now - 24 * 60000,
-    ),
-  ];
+export function makeOddEvent(
+  key: ScenarioKey,
+  now: number,
+  id: string = crypto.randomUUID(),
+  override?: { hub?: string; scope?: Scope },
+): MarketEvent {
+  const template = scenarios[key],
+    hub = override?.hub ?? template.hub,
+    h = hubs.find((h) => h.id === hub)!;
+  let headline =
+    hub === template.hub
+      ? template.headline
+      : template.headline.replace(
+          /Istanbul|London|Tokyo|São Paulo|Dubai|New York|Paris/g,
+          h.name,
+        );
+  const effects: Record<string, number> = { ...template.effects };
+  let body = template.body;
+  if (hub !== template.hub) {
+    body = body.replace(
+      /East Africa|Istanbul|London|Tokyo|São Paulo|Dubai|New York|Paris/g,
+      h.name,
+    );
+    if (key === "cats") {
+      const company = seeds.find((c) => c[2] === hub)!;
+      headline = headline.replace("Thrace Technologies", company[1]);
+      body = body.replace("Thrace Technologies", company[1]);
+      effects[company[3]] = 1.7;
+    }
+  }
+  const event = createEvent(
+    id,
+    hub,
+    override?.scope ?? template.scope,
+    template.category,
+    headline,
+    Object.keys(effects),
+    [],
+    Object.values(effects)[0],
+    now,
+  );
+  return {
+    ...event,
+    body,
+    scene: template.scene,
+    chain: template.chain,
+    next: template.next,
+    scenario: key,
+    effects,
+    consequence: template.consequence,
+    captions: template.captions,
+  };
 }
-export const money = (n: number, mark = "$") =>
-  mark +
-  n.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+export function sectorImpact(event: MarketEvent, sector: string) {
+  return (
+    event.effects?.[sector] ??
+    event.impact *
+      (event.category === "Energy" && ["Airlines", "Logistics"].includes(sector)
+        ? -1
+        : 1)
+  );
+}
+export function initialEvents(now: number): MarketEvent[] {
+  const opening = [
+    "coffee",
+    "lakes",
+    "dub_liberty",
+    "cats",
+    "balloons",
+    "ducks",
+    "clouds",
+  ];
+  const keys = [
+    ...opening,
+    ...scenarioKeys.filter((k) => !opening.includes(k) && !followupKeys.has(k)),
+  ];
+  return keys.map((key, i) =>
+    makeOddEvent(key, now - (2 + i * 7) * 60000, "edition-" + key),
+  );
+}
+export const money = (n: number, mark = "$") => mark + decimalNumber(n);
 export const compact = (n: number) =>
-  Intl.NumberFormat("en-US", {
+  Intl.NumberFormat(numberLocale(), {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(n);
-export const pct = (n: number) => (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
+export const pct = (n: number) => (n >= 0 ? "+" : "") + decimalNumber(n) + "%";
 export const changeOf = (c: Company) => (c.price / c.previousClose - 1) * 100;
 const formatters = new Map<string, Intl.DateTimeFormat>();
 export function localTime(now: number, zone: string, seconds = false) {

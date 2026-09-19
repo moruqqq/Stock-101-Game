@@ -13,6 +13,7 @@ const browser = await chromium.launch({
 });
 const errors = [];
 const page = await browser.newPage({
+  locale: "en-US",
   viewport: { width: 390, height: 844 },
   deviceScaleFactor: 1,
   isMobile: true,
@@ -38,7 +39,7 @@ try {
   await page.waitForTimeout(2200);
   await expect(
     page.getByRole("heading", {
-      name: "Follow the sun. Find your opportunity.",
+      name: "One world. Always moving.",
     }),
   ).toBeVisible();
   await shot("world-mobile");
@@ -50,13 +51,15 @@ try {
   await page.getByRole("button", { name: "14:30", exact: true }).click();
   await closeDialog();
   await page
-    .getByRole("button", { name: "Explore Istanbul", exact: true })
+    .getByRole("button", { name: "Visit Istanbul", exact: true })
     .click();
-  await expect(page.locator(".selected-index")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Istanbul" })).toBeVisible({
+    timeout: 15000,
+  });
   await page.waitForTimeout(1500);
   await shot("world-selected-mobile");
   await page
-    .getByRole("button", { name: "Enter Istanbul exchange", exact: true })
+    .getByRole("button", { name: "Visit exchange", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "Istanbul Exchange" }),
@@ -154,21 +157,21 @@ try {
   await nav("News");
   await expect(
     page.getByRole("heading", {
-      name: "Thrace wins landmark defense electronics contract",
+      name: "Thrace Technologies appoints an autonomous feline board in Istanbul",
     }),
   ).toBeVisible();
   await shot("news-mobile");
   await page.getByRole("button", { name: "Europe", exact: true }).click();
   await expect(
     page.getByRole("heading", {
-      name: "Thrace wins landmark defense electronics contract",
+      name: "Thrace Technologies appoints an autonomous feline board in Istanbul",
     }),
   ).toBeVisible();
   await page
-    .locator(".news-feed-card")
-    .filter({ hasText: "Thrace wins" })
+    .locator(".news-headline-button")
+    .filter({ hasText: "feline board" })
     .click();
-  await expect(page.getByRole("dialog")).toContainText("Upward pressure");
+  await expect(page.getByRole("dialog")).toContainText("Positive pressure");
   await shot("story-mobile");
   await closeDialog();
   await dev();
@@ -194,15 +197,18 @@ try {
   await page.waitForTimeout(1300);
   await page.getByRole("button", { name: "Explore regions" }).click();
   await page
-    .getByRole("button", { name: "Asia 5 financial centers", exact: true })
+    .getByRole("button", { name: "Asia 5 cities to explore", exact: true })
     .click();
   await page.waitForTimeout(1700);
   await expect(page.locator(".perspective")).toContainText("Asia");
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
-  await page.waitForTimeout(1400);
-  await expect(page.locator(".selected-index")).toBeVisible();
+  await page.waitForTimeout(1200);
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Tokyo" })).toBeVisible({
+    timeout: 15000,
+  });
   await shot("asia-mobile");
-  await page.getByRole("button", { name: "Reset globe", exact: true }).click();
+  await page.locator(".planet-back").click();
   const bounds = await page.evaluate(() => ({
     width: document.documentElement.scrollWidth,
     height: document.documentElement.scrollHeight,

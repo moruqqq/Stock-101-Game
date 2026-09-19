@@ -1,8 +1,8 @@
 # Meridian — a world in motion
 
-A playable, iPhone-first global stock market simulation. Explore a restrained 3D atlas, discover geographically scoped intelligence, trade fictional companies, and build a global portfolio. Everything runs locally; refreshing resets the session.
+An iPhone-first global market simulation with an illustrated Earth, recognisable living cities, fictional news and a local trading economy. The news is deliberately disconnected from reality; its reporting style is matter-of-fact. Everything runs locally. Refreshing resets the game; the selected appearance persists.
 
-## Run in a browser
+## Browser
 
 Requires Node.js 22.12+ (Node 24 recommended).
 
@@ -11,18 +11,16 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. Use a 390×844 portrait viewport for the primary experience. The desktop layout keeps the same game interactions with additional map intelligence around the globe.
-
-Production preview:
+Open http://localhost:5173, ideally at 390×844 portrait. Production preview:
 
 ```sh
 npm run build
 npm run preview
 ```
 
-## Run in the iOS Simulator
+## iOS Simulator
 
-The native Xcode project is already included in `ios/`. On a **Mac with Xcode 26 or later** and its command-line tools installed:
+The Xcode project is included in `ios/`. On a Mac with Xcode 26+:
 
 ```sh
 npm install
@@ -31,53 +29,79 @@ npx cap sync ios
 npx cap open ios
 ```
 
-1. Allow Xcode to resolve the Capacitor Swift package dependency.
-2. Select the **App** scheme and an installed iPhone Simulator (for example iPhone 16).
-3. Press **Run**. Simulator builds do not require a paid Apple Developer account.
-4. After web changes, run `npm run ios:sync`, then build/run again in Xcode.
+Resolve the Capacitor Swift packages, select the **App** scheme and an installed iPhone Simulator, then Run. After changes, run `npm run ios:sync` and rebuild. This uses Swift Package Manager, iOS 15 minimum, portrait iPhone orientation, bundled assets/fonts, and no remote server.
 
-Capacitor 8.5 uses Swift Package Manager here; CocoaPods is unnecessary. Native deployment target is iOS 15. The iPhone orientation is portrait, status bar is light, and native launch artwork uses the same dark Meridian identity. The WebView uses bundled assets with no external server URL or live network dependency. Simulator pinch can be performed by holding Option while dragging, or with the Simulator's trackpad gesture support.
+Status-bar text follows the selected theme through `@capacitor/status-bar`. Light is the default; Mid and Dark are available from the palette icon.
 
-See [Capacitor's environment requirements](https://capacitorjs.com/docs/getting-started/environment-setup) and [iOS workflow](https://capacitorjs.com/docs/ios).
+**Native validation boundary:** development and browser checks were performed on Windows. Build and Capacitor sync can be verified here. Actual Xcode compilation, WKWebView behaviour, device GPU performance, Dynamic Island/home-indicator insets, audio and lifecycle transitions still require a Mac/iPhone.
 
-**Validation boundary:** this project was built and browser-tested on Windows. Native files and `cap sync ios` were verified, but Xcode compilation, native safe-area values, WKWebView behavior, audio, and device GPU performance must still be checked on a Mac/iPhone. Browser touch tests are not an iOS Simulator certification.
+## World → city → streets
 
-## A quick playable tour
+- Drag the globe, then pinch/scroll toward a financial centre. The globe stops at maximum zoom. Release and pinch again, start a new scroll burst, or press + once more to enter the city. Continuing the same gesture stays on Earth. City shortcuts, region selection and the complete 15-city directory provide alternate routes.
+- Cities occupy a continuous curved Earth surface with a horizon, terrain, waterways, streets and neighbouring landscape. There are no floating city platforms.
+- Keep pinching inside the city to reach street level. Drag to orbit; use two fingers to zoom/pan. Zoom sufficiently far out to return to Earth. The overview control resets the camera.
+- Each city has three named districts and one or more recognisable landmarks. Select districts or landmark pins to travel locally. Tap building meshes to inspect companies; enter the exchange to trade.
+- Traffic, buses, pedestrians, ferries and building lights add activity. City report buttons open the local dispatch list. Details can be collapsed to expose more of the map.
 
-1. **World:** drag the globe, pinch or scroll to zoom, or use +/−. Tap the `Global / All markets` selector to fly to a region. Reset with the crosshair button.
-2. **Discover:** amber rings mark stories. Global reports are public immediately. Regional reports unlock as you approach their region; local reports unlock near the relevant city. Discovered reports stay in News for the session. Entering an exchange also reveals its local reports.
-3. **Istanbul:** tap the city, inspect its clock, index, movers, and local news, then use the arrow to enter the exchange.
-4. **Trade:** open THRA and choose Buy or Sell. Set a whole-share quantity and execute. Confirmed fills immediately change cash, holdings, weighted cost, and portfolio exposure. Closed markets reject orders.
-5. **Portfolio:** cash and totals are in USD. Stock quotes use their local currency. An explicitly displayed, fixed mock exchange rate converts each order into USD. View your investments on the globe.
-6. **Simulation controls:** tap the sliders beside the logo, or the desktop footer controls. Choose an exchange, set local time, use 1×/10×/60×/600× speed, trigger scenarios, and optionally enable restrained sound effects. To immediately trade THRA, set Istanbul to **14:30**.
+| City      | Geographic / architectural identity                                                                                 |
+| --------- | ------------------------------------------------------------------------------------------------------------------- |
+| Istanbul  | Bosphorus, two shores, historic peninsula, Galata Tower, mosque domes, suspension bridge, ferries, terracotta roofs |
+| London    | Thames, Westminster, London Eye, Tower Bridge, brick streets, red double-deckers                                    |
+| Paris     | Seine, limestone blocks, slate roofs, Eiffel Tower, Arc de Triomphe                                                 |
+| Tokyo     | Dense rail-oriented districts, bay, Tokyo Tower, Asakusa temple                                                     |
+| New York  | Manhattan-like island, street grid, central parkland, stepped towers, Liberty harbour, yellow taxis                 |
+| Nairobi   | Highland terrain, river corridor, acacia-like canopy, civic tower                                                   |
+| Frankfurt | Main river, pitched old-town roofs, cathedral and banking skyline                                                   |
+| Hong Kong | Broad harbour, dense tall buildings, hills and Central skyline                                                      |
+| Shanghai  | Huangpu, Bund/Pudong contrast, Oriental Pearl silhouette                                                            |
+| Singapore | Marina Bay towers, tropical canopy, garden structures and port                                                      |
+| Dubai     | Desert/coast palette, stepped spire, sail-shaped waterfront landmark                                                |
+| Sydney    | Harbour, shell-like opera roofs, bridge and ferries                                                                 |
+| Toronto   | Lake Ontario shore, observation tower and streetcars                                                                |
+| Mumbai    | Dense peninsula streets, gateway waterfront and monsoon atmosphere                                                  |
+| São Paulo | Inland ridges, Paulista corridor, suspended museum, parkland and twin spires                                        |
 
-## Prototype rules
+These are compact geographic interpretations, not surveyed street maps. Population/weather labels and all market data are prototype context.
 
-- 14 financial centers and 30 fictional companies across 10 sectors.
-- Clock starts at the current real-world instant and advances at 1× by default. IANA time zones handle daylight saving. Fictional sessions run **every day, including weekends**, without holiday calendars or lunch breaks.
-- Pre-market starts two hours before opening; closing begins 15 minutes before the closing bell. Countdown and active hub styling follow the same shared session calculation.
-- Only open/closing exchanges simulate price changes, every three real seconds. Movement combines global, regional, sector, sentiment, event, and bounded noise terms. Time acceleration advances the session clock and event age, without creating hundreds of updates per second.
-- A new local event appears every real minute. The controls also create local, regional, and global stories, economic news, energy shocks, crashes, and rallies. News impacts fade over two simulated hours; future-dated news does not move prices.
-- Background tabs pause price/event work. On return, the clock catches up by elapsed time at the selected simulation speed.
-- Buys and sells use current local prices and fixed USD conversion rates. No fees, fractional shares, short selling, pending orders, or real order book. Cash cannot go negative and sales cannot exceed holdings.
-- Stock intraday charts include a seeded history followed by simulated ticks. Longer ranges and portfolio performance curves are clearly labeled illustrative; current valuations and returns are calculated from actual mock holdings. The world-card reference index is mock data; exchange indexes derive movement from their constituent mock stocks.
-- No backend, accounts, multiplayer, real financial APIs, or persistent storage.
+## News and connected events
 
-## Stack and layout
+**101 authored scenarios**, with at least six tied to every city. The opening edition contains 98 reports; three follow-up reports are reserved for a developing story. Reports cover politics, regulation, commodities, energy transitions, technology, transport, climate and urban change. Search by subject/place and filter by region or global scope. Feeds render 12 items at a time, with Load more for the archive.
 
-React 19.2, TypeScript, Vite, Tailwind CSS 4, Three.js, React Three Fiber, Drei, Framer Motion, and Capacitor. Financial content and controls are HTML/CSS; only the world and its spatial activity use WebGL.
+The initial coffee discovery in Brazil develops into German engine certification, Japan's coffee-fuel transport transition, and export rationing in Brazil. New dispatches arrive every 45 real seconds; causal follow-ups take priority and do not publish ahead of their parent. Developer controls include **COFFEE TRANSITION** and **NEXT DISPATCH** for immediate exploration.
 
-- `src/Globe.tsx`: lightweight country atlas, borders, batched land points, hubs, seven connection arcs, camera flights, drag and pinch controls, and progressive labels.
-- `src/WorldScreen.tsx`: map overlays, region selection, proximity-based news discovery.
-- `src/data.ts`: fictional hubs, companies, events, time-zone/session logic.
-- `src/engine.ts`: pure price and order calculations.
-- `src/useGame.ts`: local clock, timers, events, account state, and optional Web Audio tones.
-- `src/Screens.tsx`: exchange, company, trading, portfolio, news, and developer interfaces.
-- `src/UI.tsx`: accessible sheets, SVG charts, and reusable HTML presentation.
-- `src/GameApp.tsx`: navigation and screen flow.
-- `ios/`: generated and configured native Xcode project.
+Other reports include overnight African lakes, citizenship for buildings, computer-readable desert sand, grain that grows bread, borders responding to weather, a Gulf freedom charter, and European disputes over closed economic zones. Headlines and explanations use a news register. A simulation notice distinguishes the fictional coverage from real news.
 
-The globe uses an 80×56 sphere, one local 2048×1024 atlas texture, batched borders/land points, 14 hub labels, seven low-segment connections, and no post-processing. DPR is capped at 1.5 and drops to 1 under sustained load. The globe unmounts on financial screens. Live price histories, story counts, and order history are bounded. All assets are local, including the geographic atlas and app artwork.
+Each report contains geographical scope, timestamp, sector effects, a reconstruction scene and captions. Twelve base scene families cover reports using live 3D models rather than downloaded video. Pause and replay work; clips stop when covered, offscreen or in a background tab. A developing-story panel shows the reports published so far.
+
+Global reports are visible immediately. Regional reports unlock near the region; local reports unlock inside the city. Discoveries remain available for the session.
+
+## Economy and prototype limits
+
+- 15 exchanges, 32 fictional companies, 10 sectors. Quotes use local currencies; portfolio totals/cash and settlement use USD at fixed displayed mock rates.
+- Local exchange sessions use IANA zones, including daylight saving. The prototype runs sessions every day, including weekends. Pre-market starts two hours before opening; closing starts 15 minutes before close.
+- Only open/closing markets update prices, every three real seconds. Global/regional/sector trends, sentiment, scoped event effects and bounded noise drive the tick.
+- UI sector directions and price effects use the same data. Events fade after two simulated hours. Archived reports remain readable but no longer move prices. Combined news pressure is capped so a large archive cannot create runaway ticks.
+- Developer controls support local time, 1×/10×/60×/600× speed, market transitions, named scenarios, local/regional/global events and optional sounds.
+- Whole-share buys/sells update cash, cost basis and holdings immediately. Closed markets, insufficient cash and overselling reject orders. No short selling, fees, real order book, backend, accounts, multiplayer or real financial API.
+- Intraday charts mix seeded history and actual simulated ticks. Longer time ranges and portfolio performance curves are labeled illustrative. Current valuations use the live mock account.
+
+## Themes and rendering
+
+Light preserves the illustrated cream/teal palette. Mid uses slate surfaces and dusk lighting. Dark uses deep blue surfaces, darker terrain and illuminated windows. The palette button affects world, cities, news, finance screens, dialogs and iOS status text. Only the theme persists in local storage.
+
+React/HTML/CSS/SVG render the readable interface. Three.js / React Three Fiber / Drei render the planet, cities and report scenes. Framer Motion handles interface transitions; Vite, TypeScript, Tailwind CSS and Capacitor complete the stack.
+
+City building bodies/windows/roofs, trees, 32 vehicles, 48 pedestrians and four boats use instancing. City footprints are bounded, DPR is capped and drops under load, and there is no post-processing. World/city rendering unmounts on financial screens. Report, tick-history and order arrays are bounded.
+
+## Files
+
+- `src/PlayfulWorld.tsx`, `src/Globe.tsx`, `src/WorldDecor.tsx`: world, regional discovery, zoom-based city entry, directory.
+- `src/cityProfiles.ts`, `src/CityWorld.tsx`, `src/CityEnvironment.tsx`, `src/CityLandmarks.tsx`: city identities, terrain, districts, life, landmarks and street zoom.
+- `src/scenarios.ts`, `src/newswire.ts`: 101 reports and causal scheduling.
+- `src/PlayfulNews.tsx`, `src/NewsReel.tsx`, `src/ReportModels.tsx`, `src/ReportThumbnail.tsx`: newsroom, reconstructions and archive.
+- `src/Theme.tsx`, `src/themes.css`, `src/expansion.css`: appearance, palette tokens and expanded UI.
+- `src/data.ts`, `src/engine.ts`, `src/useGame.ts`: sessions, trading, clock, price and event engines.
+- `src/Screens.tsx`, `src/UI.tsx`, `src/GameApp.tsx`: finance and navigation.
 
 ## Verification
 
@@ -85,25 +109,30 @@ The globe uses an 80×56 sphere, one local 2048×1024 atlas texture, batched bor
 npm test
 npm run build
 npx cap sync ios
-```
-
-The 20 unit tests cover exact session boundaries, daylight saving, midnight countdowns, multi-currency settlement, weighted cost, full liquidation, invalid orders, closed-market behavior, event scope/age, and bounded price histories.
-
-With the dev server running, the browser checks run against Chrome on Windows:
-
-```sh
+# With a dev/preview server running:
 npm run test:e2e
 npm run test:gestures
+npm run test:world
 ```
 
-On other machines, set `BROWSER_PATH` to a Chromium/Chrome executable, or install Playwright Chromium (`npx playwright install chromium`). `BASE_URL` can target a production preview instead of localhost:5173. Screenshots are written into ignored `artifacts/`.
+47 unit tests cover sessions, DST, settlement, validation, event scope, price bounds, story coverage, causal sequencing, cross-border sector effects and city geography. Browser tests cover exact buy/sell cash reconciliation, blocked orders, search, discovery, themes, persistence, district navigation, report animation, chained dispatches and actual multi-touch globe/city/street transitions.
 
-The interaction checks cover globe selection and discovery, clock updates, chart ranges, buys and sells with exact USD cash reconciliation, quantity validation, closed-market rejection, portfolio changes, news filtering, scenario controls, and market search. Gesture checks dispatch actual single- and multi-touch browser events and verify rotation, pinch zoom, progressive information, focus-scroll stability, and narrow-screen bounds.
+Browser scripts use Chrome on Windows by default. Set `BROWSER_PATH` elsewhere or install Playwright Chromium. Set `BASE_URL=http://localhost:4173` to use the production preview. Screenshots go to ignored `artifacts/`.
 
-Remaining native acceptance checks: Xcode build/run; Dynamic Island and home-indicator insets; physical-device drag/pinch/scroll behavior; thermal/GPU smoothness; app background/foreground transitions; optional sounds on iOS.
+## Attribution
 
-`npm audit --omit=dev` reports no runtime vulnerabilities. The Capacitor CLI's transitive `xcode → uuid` development dependency currently reports a moderate advisory; the compatible audit fix does not resolve it. No forced dependency override was applied.
+Country geometry: `world-atlas` (ISC, Michael Bostock), based on public-domain Natural Earth data. See `public/ATTRIBUTION.txt`. Fredoka and DM Sans are bundled through Fontsource under the SIL Open Font License. City models and report illustrations are generated in code. Companies, news, prices and economic effects are fictional.
 
-## Geography attribution
+### Street life and reports on location
 
-Country geometry comes from `world-atlas` (ISC, Michael Bostock), based on public-domain Natural Earth data. A local copy is included at `public/countries-110m.json`; see `public/ATTRIBUTION.txt`. All company names, news, prices, and market scenarios are fictional prototype data.
+Cities now have a bounded crowd of up to 144 animated residents: walkers, park joggers and small conversations. Each report also draws a small audience from that same population: people approach a safe viewing spot, turn toward the event, watch or film it, then leave and return at staggered intervals. Water events are watched from shore. Audience placement is independent of camera selection, uses the existing three resident draw calls and keeps regular walkers and conversations in the city. The people button frames a gathering. Published local reports have selectable geographic markers; approaching them reveals the same animated reconstruction used in the news story. **Explore [city]** in a story flies to that exact report, and **Show on streets** in the city dispatch list does the same. The cat governance report also adds roaming and rooftop cats throughout its city. Up to three event reconstructions share the city Canvas at once.
+
+Pinch inward or use minus to pull back from a city; continuing beyond the city overview returns to Earth automatically. Light / Mid / Dark change interface colors; the city terrain, lighting and resident colors stay consistent. Window lights follow local simulation time.
+
+Run `npm run test:zoom-entry` and `npm run test:gestures` for the two-stage globe entry using buttons, wheel and real multitouch.
+
+Run `npm run test:city-life` against the preview server for the report-to-city, theme, street-life and zoom-out checks.
+
+### Turkish / English
+
+Use **TR / EN** in the header or in an open dialog to switch instantly without resetting the simulation, camera, portfolio or order quantity. The preference is stored locally; first launch follows the device language (Turkish for a Turkish device, English otherwise). Menus, financial UI, all 101 report scenarios, captions and all 15 city guides have Turkish text. News and market searches accept either language. Number formatting follows the selected language; currency units remain unchanged. Run `npm run test:locale` against the preview server for the full mobile language and trading flow.

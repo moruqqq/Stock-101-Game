@@ -1,0 +1,92 @@
+.city-event-pin {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 6px 9px;
+  border: 1px solid #c4a969;
+  border-radius: 7px;
+  background: #fff6dc;
+  color: #70502c;
+  box-shadow: 0 3px 9px #183c4220;
+  white-space: nowrap;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.city-event-pin.active {
+  outline: 2px solid #d29953;
+  background: #ffebbd;
+}
+.city-event-pin svg {
+  flex: none;
+}
+.city-dispatch-row {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.city-dispatch-row > button {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  color: var(--text);
+  text-align: left;
+}
+.city-dispatch-row .dispatch-map-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  background: var(--surface-soft);
+  border-top: 1px solid var(--border);
+  padding: 10px 14px;
+  min-height: 38px;
+}
+.expanded-city .city-info.on-location {
+  border-left: 3px solid #cf9b50;
+}
+.expanded-city .city-info.on-location.collapsed h2 {
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  line-height: 1.35;
+  margin-bottom: 12px;
+  padding-right: 18px;
+}
+.expanded-city .city-zoom button.active {
+  color: var(--accent);
+  background: var(--surface-soft);
+}
+.city-observation .city-lead-report {
+  color: #70502c;
+  background: #fff6dc;
+  border-color: #c4a969;
+}
+@media (max-width: 700px) {
+  .city-observation {
+    top: 216px;
+    gap: 6px;
+  }
+  .city-observation .city-lead-report {
+    order: 2;
+  }
+  .city-event-pin {
+    font-size: 7px;
+    padding: 5px 7px;
+  }
+  .expanded-city .city-info.on-location.collapsed {
+    padding: 12px 14px;
+  }
+}
+
+.expanded-city .city-info.on-location .city-primary {
+  position: static;
+  float: none;
+  margin: 6px 0 0 auto;
+}
+@media (max-height: 730px) and (max-width: 700px) {
+  .city-observation {
+    top: 185px;
+  }
+}

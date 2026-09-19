@@ -1,4 +1,6 @@
+import { useLocale, LanguageSwitcher } from "./Locale";
 import { useState } from "react";
+import { ThemeSwitcher } from "./Theme";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Globe2,
@@ -11,15 +13,14 @@ import {
   VolumeX,
   Check,
 } from "lucide-react";
-import WorldScreen from "./WorldScreen";
+import WorldScreen from "./PlayfulWorld";
+import { NewsScreen, StorySheet } from "./PlayfulNews";
 import {
   DevSheet,
   MarketScreen,
   MarketsScreen,
-  NewsScreen,
   PortfolioScreen,
   StockScreen,
-  StorySheet,
   TradeSheet,
 } from "./Screens";
 import { useGame } from "./useGame";
@@ -30,12 +31,16 @@ type Route =
   | { type: "market"; id: string }
   | { type: "stock"; symbol: string };
 export default function GameApp() {
+  const { tr } = useLocale();
   const game = useGame(),
     [stack, setStack] = useState<Route[]>([{ type: "world" }]),
     [dev, setDev] = useState(false),
     [story, setStory] = useState<MarketEvent | null>(null),
     [trade, setTrade] = useState<"BUY" | "SELL" | null>(null),
-    [exposureMode, setExposureMode] = useState(false);
+    [exposureMode, setExposureMode] = useState(false),
+    [requestedCity, setRequestedCity] = useState<
+      { id: string; key: number; eventId?: string } | undefined
+    >();
   const route = stack.at(-1)!,
     active =
       route.type === "market" || route.type === "stock"
@@ -45,6 +50,7 @@ export default function GameApp() {
     tab = (type: Tab) => {
       setStack([{ type }]);
       setExposureMode(false);
+      setRequestedCity(undefined);
     },
     back = () =>
       setStack((s) => (s.length > 1 ? s.slice(0, -1) : [{ type: "world" }]));
@@ -71,28 +77,33 @@ export default function GameApp() {
       <header className="topbar">
         <button
           className="brand"
-          aria-label="Meridian home"
+          aria-label={tr("Meridian home")}
           onClick={() => tab("world")}
         >
           <Globe2 />
           <span>
-            MERIDIAN<small>THE WORLD IS YOUR MARKET</small>
+            {tr("MERIDIAN")}
+            <small>{tr("A WORLD IN MOTION")}</small>
           </span>
         </button>
         <div className="top-center">
-          <span className="live-dot" /> ALL SYSTEMS LIVE{" "}
-          <span className="divider" /> GLOBAL MARKET SIMULATION
+          <span className="live-dot" /> {tr(" GLOBAL MARKET SIMULATION")}
+          {tr(" ")}
+          <span className="divider" /> {tr(" FOLLOW YOUR CURIOSITY ")}
         </div>
+        <LanguageSwitcher />
+        <ThemeSwitcher />
         <button
           className="profile-button"
-          aria-label="Open simulation controls"
+          aria-label={tr("Open simulation controls")}
           onClick={() => setDev(true)}
         >
           <span className="profile-avatar">
             <SlidersHorizontal size={13} />
           </span>
           <span>
-            Explorer<small>SIMULATION CONTROLS</small>
+            {tr("Simulation")}
+            <small>{tr("SCENARIO CONTROLS")}</small>
           </span>
           <ChevronDown size={14} />
         </button>
@@ -114,6 +125,9 @@ export default function GameApp() {
               <WorldScreen
                 game={game}
                 openMarket={openMarket}
+                openStock={openStock}
+                requestedCity={requestedCity}
+                paused={Boolean(story) || dev}
                 openStory={openStory}
                 exposureMode={exposureMode}
                 setExposureMode={setExposureMode}
@@ -156,6 +170,7 @@ export default function GameApp() {
             )}
             {route.type === "news" && (
               <NewsScreen
+                paused={Boolean(story) || dev}
                 game={game}
                 openStory={openStory}
                 world={() => tab("world")}
@@ -164,9 +179,9 @@ export default function GameApp() {
           </motion.div>
         </AnimatePresence>
       </div>
-      <div className="ticker" aria-label="Live stock ticker">
+      <div className="ticker" aria-label={tr("Live stock ticker")}>
         <span className="ticker-label">
-          <span className="live-dot" /> MARKET PULSE
+          <span className="live-dot" /> {tr(" LIVE MARKETS ")}
         </span>
         <div className="ticker-window">
           <div className="ticker-track">
@@ -179,15 +194,15 @@ export default function GameApp() {
                   tabIndex={copy ? -1 : 0}
                   aria-hidden={copy ? true : undefined}
                 >
-                  <b>{c.symbol}</b>
+                  <b>{tr(c.symbol)}</b>
                   <span
                     key={c.price}
                     className={`ticker-price flash-${c.flash}`}
                   >
-                    {money(c.price, hubs.find((h) => h.id === c.hub)!.mark)}
+                    {tr(money(c.price, hubs.find((h) => h.id === c.hub)!.mark))}
                   </span>
                   <em className={changeOf(c) < 0 ? "negative" : ""}>
-                    {changeOf(c) >= 0 ? "↗" : "↘"} {pct(changeOf(c))}
+                    {tr(changeOf(c) >= 0 ? "↗" : "↘")} {tr(pct(changeOf(c)))}
                   </em>
                 </button>
               )),
@@ -195,7 +210,7 @@ export default function GameApp() {
           </div>
         </div>
       </div>
-      <nav className="bottom-nav" aria-label="Main navigation">
+      <nav className="bottom-nav" aria-label={tr("Main navigation")}>
         {(
           [
             { icon: Globe2, label: "World", id: "world" },
@@ -211,7 +226,7 @@ export default function GameApp() {
             onClick={() => tab(id)}
           >
             <Icon size={20} />
-            <span>{label}</span>
+            <span>{tr(label)}</span>
             {active === id && <i />}
             {id === "news" &&
               game.events.some(
@@ -221,15 +236,19 @@ export default function GameApp() {
         ))}
         <div className="nav-right">
           <button className="sim-speed" onClick={() => setDev(true)}>
-            SIMULATION · {game.speed}×
+            {tr("SIMULATION · ")}
+            {tr(game.speed)}×
           </button>
           <button
-            aria-label={game.sound ? "Mute sounds" : "Enable sounds"}
+            aria-label={tr(game.sound ? "Mute sounds" : "Enable sounds")}
             onClick={() => game.setSound(!game.sound)}
           >
             {game.sound ? <Volume2 size={17} /> : <VolumeX size={17} />}
           </button>
-          <button aria-label="Simulation controls" onClick={() => setDev(true)}>
+          <button
+            aria-label={tr("Simulation controls")}
+            onClick={() => setDev(true)}
+          >
             <SlidersHorizontal size={18} />
           </button>
         </div>
@@ -244,21 +263,28 @@ export default function GameApp() {
             exit={{ opacity: 0, y: -10 }}
           >
             <Check size={15} />
-            {game.toast}
+            {tr(game.toast)}
           </motion.div>
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {dev && <DevSheet game={game} close={() => setDev(false)} />}{" "}
+        {dev && <DevSheet game={game} close={() => setDev(false)} />}
+        {tr(" ")}
         {story && (
           <StorySheet
             event={story}
             game={game}
             close={() => setStory(null)}
             openStock={openStock}
-            explore={() => openMarket(story.hub)}
+            explore={() => {
+              const id = story.hub;
+              setStory(null);
+              setStack([{ type: "world" }]);
+              setRequestedCity({ id, key: Date.now(), eventId: story.id });
+            }}
           />
-        )}{" "}
+        )}
+        {tr(" ")}
         {trade && route.type === "stock" && (
           <TradeSheet
             symbol={route.symbol}

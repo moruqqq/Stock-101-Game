@@ -1,4 +1,6 @@
 import { chromium, expect } from "@playwright/test";
+import fs from "node:fs";
+fs.mkdirSync("artifacts", { recursive: true });
 const browser = await chromium.launch({
   executablePath:
     process.env.BROWSER_PATH ??
@@ -9,20 +11,20 @@ const browser = await chromium.launch({
   args: ["--enable-webgl", "--ignore-gpu-blocklist", "--use-angle=swiftshader"],
 });
 const page = await browser.newPage({
+  locale: "en-US",
   viewport: { width: 390, height: 844 },
   isMobile: true,
   hasTouch: true,
   deviceScaleFactor: 1,
 });
-const base = process.env.BASE_URL ?? "http://localhost:5173";
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 try {
-  await page.goto(base);
+  await page.goto(process.env.BASE_URL ?? "http://localhost:5173");
   await page.waitForSelector("canvas");
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1800);
   const cdp = await page.context().newCDPSession(page);
-  const touch = async (type, points) =>
+  const touch = (type, points) =>
     cdp.send("Input.dispatchTouchEvent", {
       type,
       touchPoints: points.map(([x, y], i) => ({
@@ -34,60 +36,114 @@ try {
         force: 1,
       })),
     });
-  await touch("touchStart", [
-    [142, 430],
-    [248, 430],
-  ]);
-  for (let i = 1; i <= 8; i++) {
-    await touch("touchMove", [
-      [142 - i * 9, 430],
-      [248 + i * 9, 430],
+  const pinch = async (start, end) => {
+    await touch("touchStart", [
+      [195 - start, 430],
+      [195 + start, 430],
     ]);
-    await page.waitForTimeout(35);
-  }
-  await touch("touchEnd", []);
-  await page.waitForTimeout(1200);
-  await expect(page.locator(".selected-index")).toBeVisible();
-  await expect(page.locator(".perspective")).not.toContainText("All markets");
-  console.log(
-    "PASS: actual two-finger touch pinch reveals regional/city information",
+    for (let i = 1; i <= 10; i++) {
+      const dx = start + ((end - start) * i) / 10;
+      await touch("touchMove", [
+        [195 - dx, 430],
+        [195 + dx, 430],
+      ]);
+      await page.waitForTimeout(50);
+    }
+    await touch("touchEnd", []);
+    await page.waitForTimeout(1200);
+  };
+  await pinch(70, 109);
+  await expect(page.locator(".perspective")).not.toContainText(
+    "Whole wide world",
   );
-  await page.getByRole("button", { name: "Reset globe", exact: true }).click();
-  await page.waitForTimeout(1500);
-  const before = await page
-    .getByRole("button", { name: "Explore Istanbul", exact: true })
-    .boundingBox();
-  await touch("touchStart", [[190, 460]]);
-  for (let i = 1; i <= 6; i++) {
-    await touch("touchMove", [[190 + i * 13, 460 + i * 2]]);
-    await page.waitForTimeout(35);
+  await expect(page.locator(".journey-card")).toContainText("REGIONAL VIEW");
+  console.log("PASS: two-finger pinch progressively reveals a region.");
+  await pinch(60, 100);
+  await pinch(60, 115);
+  await expect(page.locator(".world-page")).toHaveAttribute(
+    "data-zoom-limit",
+    "true",
+  );
+  await expect(page.locator(".expanded-city")).toHaveCount(0);
+  await page.waitForTimeout(800);
+  await expect(page.locator(".world-page")).toBeVisible();
+  await page.screenshot({ path: "artifacts/globe-zoom-stop.png" });
+  await pinch(60, 94);
+  await expect(page.locator(".city-title h1")).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(
+    page.getByRole("button", { name: "Overview", exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: "artifacts/gesture-enter-city.png" });
+  const cityPin = page.getByRole("button", {
+    name: "Inspect Galata Tower",
+    exact: true,
+  });
+  const cityBefore = await cityPin.boundingBox();
+  await touch("touchStart", [[180, 440]]);
+  for (let i = 1; i <= 7; i++) {
+    await touch("touchMove", [[180 + i * 12, 440 + i * 2]]);
+    await page.waitForTimeout(45);
   }
   await touch("touchEnd", []);
   await page.waitForTimeout(900);
-  const after = await page
-    .getByRole("button", { name: "Explore Istanbul", exact: true })
-    .boundingBox();
+  const cityAfter = await cityPin.boundingBox();
+  expect(
+    Math.abs(cityAfter.x - cityBefore.x) + Math.abs(cityAfter.y - cityBefore.y),
+  ).toBeGreaterThan(10);
+  await page
+    .getByRole("button", { name: "Collapse city details", exact: true })
+    .click();
+  await pinch(60, 130);
+  await pinch(60, 130);
+  await expect(page.locator(".expanded-city")).toHaveAttribute(
+    "data-level",
+    "street",
+  );
+  await pinch(125, 55);
+  await pinch(125, 55);
+  await pinch(125, 55);
+  await expect(page.locator(".world-page")).toBeVisible({ timeout: 15000 });
+  await page
+    .getByRole("button", { name: "Visit Istanbul", exact: true })
+    .click();
+  await expect(page.locator(".city-title h1")).toHaveText("Istanbul", {
+    timeout: 15000,
+  });
+
+  console.log(
+    "PASS: pinch stops on Earth at maximum zoom; a separate pinch enters the city. City drag and zoom work.",
+  );
+  await page.locator(".planet-back").click();
+  await page.waitForTimeout(1600);
+  const ist = page.getByRole("button", {
+    name: "Explore Istanbul",
+    exact: true,
+  });
+  const before = await ist.boundingBox();
+  await touch("touchStart", [[190, 440]]);
+  for (let i = 1; i <= 6; i++) {
+    await touch("touchMove", [[190 + i * 13, 440 + i * 2]]);
+    await page.waitForTimeout(45);
+  }
+  await touch("touchEnd", []);
+  await page.waitForTimeout(900);
+  const after = await ist.boundingBox();
   expect(Math.abs((after?.x ?? 0) - (before?.x ?? 0))).toBeGreaterThan(20);
-  console.log("PASS: one-finger drag rotates the globe");
+  console.log("PASS: one-finger drag rotates the globe.");
   await page.getByRole("button", { name: "Reset globe", exact: true }).click();
   await page.waitForTimeout(1400);
-  await page
-    .getByRole("button", { name: "Explore Istanbul", exact: true })
-    .click();
-  await page.waitForTimeout(2000);
-  await expect(page.locator(".local-story-preview")).toContainText("Thrace");
+  // An explicit city shortcut still enters the requested city directly.
+  await page.getByRole("button", { name: "Visit Tokyo", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Tokyo" })).toBeVisible({
+    timeout: 15000,
+  });
+  await page.locator(".planet-back").click();
+  await page.waitForTimeout(1400);
   expect(
     await page.locator(".world-page").evaluate((el) => el.scrollLeft),
   ).toBe(0);
-  const heading = await page.locator(".world-top h1").boundingBox();
-  expect(heading.x).toBeGreaterThanOrEqual(20);
-  await page.screenshot({ path: "artifacts/world-selected-fixed.png" });
-  console.log(
-    "PASS: focused hub does not scroll the world; local news preview revealed",
-  );
-  await page.getByRole("button", { name: "Reset globe", exact: true }).click();
-  await page.waitForTimeout(1400);
-  // Browser emulation of a 59px top / 34px bottom safe-area budget; native safe areas still require Xcode QA.
   await page.addStyleTag({
     content:
       ".topbar{height:123px;padding-top:59px}.bottom-nav{height:100px;padding-bottom:34px}",
@@ -103,8 +159,11 @@ try {
   );
   expect(errors).toEqual([]);
   console.log(
-    "PASS: safe-area budget and smaller phone layout; no browser errors",
+    "PASS: explicit city shortcuts, safe-area budget, small-phone bounds; no browser errors.",
   );
+} catch (e) {
+  await page.screenshot({ path: "artifacts/gesture-failure.png" });
+  throw e;
 } finally {
   await browser.close();
 }

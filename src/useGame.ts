@@ -1,6 +1,13 @@
+import {
+  scenarioKeys,
+  scenarios,
+  nextReportKey,
+  type ScenarioKey,
+} from "./scenarios";
 import { useEffect, useRef, useState } from "react";
 import {
   createEvent,
+  makeOddEvent,
   hubs,
   initialEvents,
   makeCompanies,
@@ -94,21 +101,12 @@ export function useGame() {
   useEffect(() => {
     const timer = setInterval(() => {
       if (document.hidden) return;
-      const h = hubs[Math.floor(Math.random() * hubs.length)],
-        c = state.current.companies.find((c) => c.hub === h.id)!;
-      const e = createEvent(
-        "auto-" + Date.now(),
-        h.id,
-        "LOCAL",
-        "Company",
-        `${c.name} revises its outlook as demand strengthens`,
-        [c.sector],
-        [c.symbol],
-        0.2 + Math.random() * 0.4,
-        state.current.now,
+      const key = nextReportKey(
+        state.current.events.map((e) => e.scenario ?? ""),
       );
-      setEvents((es) => [e, ...es].slice(0, 40));
-    }, 60000);
+      const e = makeOddEvent(key, state.current.now, "auto-" + Date.now());
+      setEvents((es) => [e, ...es].slice(0, 160));
+    }, 45000);
     return () => clearInterval(timer);
   }, []);
   const previous = useRef<Record<string, string>>({});
@@ -194,49 +192,56 @@ export function useGame() {
       );
       return;
     }
-    let scope: Scope =
-      kind.includes("LOCAL") || kind === "COMPANY NEWS"
-        ? "LOCAL"
+    const special: Record<string, ScenarioKey> = {
+      "COFFEE TRANSITION": "coffee",
+      "LAKE SURPRISE": "lakes",
+      "CAT TAKEOVER": "cats",
+      "FLYING BANK": "balloons",
+      "GIANT DUCK": "ducks",
+      "COFFEE GEYSER": "coffee",
+      "SUN HOLIDAY": "clouds",
+      "MARKET CRASH": "moon",
+      "MARKET RALLY": "confetti",
+      "ENERGY SHOCK": "clouds",
+      "COMPANY NEWS": "cats",
+      "ECONOMIC NEWS": "balloons",
+    };
+    const localKeys = scenarioKeys.filter(
+      (k) =>
+        scenarios[k].hub === hubId &&
+        !["coffee_engines", "coffee_fuel", "coffee_shortage"].includes(k),
+    );
+    const key =
+      kind === "NEXT DISPATCH"
+        ? nextReportKey(state.current.events.map((e) => e.scenario ?? ""))
+        : (special[kind] ??
+          localKeys[Math.floor(Math.random() * localKeys.length)]);
+    const scope: Scope =
+      kind.includes("GLOBAL") ||
+      kind === "MARKET CRASH" ||
+      kind === "MARKET RALLY"
+        ? "GLOBAL"
         : kind.includes("REGIONAL")
           ? "REGIONAL"
-          : "GLOBAL";
-    const crash = kind === "MARKET CRASH",
-      rally = kind === "MARKET RALLY",
-      energy = kind === "ENERGY SHOCK";
-    const headline = crash
-      ? "Risk-off wave sweeps global markets"
-      : rally
-        ? "Renewed optimism sparks a worldwide market rally"
-        : energy
-          ? "Unexpected supply disruption sends oil prices higher"
-          : kind === "ECONOMIC NEWS"
-            ? "New economic data resets expectations for growth"
-            : `${c.name} announces a major investment in ${h.name}`;
-    const sectors =
-      crash || rally
-        ? [...new Set(state.current.companies.map((c) => c.sector))]
-        : energy
-          ? ["Energy", "Airlines", "Logistics"]
-          : [c.sector];
-    const e = createEvent(
-      "dev-" + Date.now(),
-      hubId,
-      scope,
-      energy
-        ? "Energy"
-        : crash || rally
-          ? "Markets"
-          : kind === "ECONOMIC NEWS"
-            ? "Economy"
-            : "Company",
-      headline,
-      sectors,
-      crash || rally ? [] : [c.symbol],
-      crash ? -2 : rally ? 2 : energy ? 1.5 : 0.8,
+          : "LOCAL";
+    const isSpecific = [
+      "NEXT DISPATCH",
+      "COFFEE TRANSITION",
+      "LAKE SURPRISE",
+      "CAT TAKEOVER",
+      "FLYING BANK",
+      "GIANT DUCK",
+      "COFFEE GEYSER",
+      "SUN HOLIDAY",
+    ].includes(kind);
+    const e = makeOddEvent(
+      key,
       state.current.now,
+      "dev-" + Date.now(),
+      isSpecific ? undefined : { hub: hubId, scope },
     );
-    setEvents((es) => [e, ...es].slice(0, 40));
-    notify(`${scope.toLowerCase()} event triggered · ${h.name}`, "news");
+    setEvents((es) => [e, ...es].slice(0, 160));
+    notify(`New dispatch from ${e.location}`, "news");
   };
   return {
     now,
