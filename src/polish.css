@@ -1,0 +1,100 @@
+/* Moving DOM labels must never make the map's clipping container scroll. */
+.world-page {
+  overflow: clip;
+  overflow-anchor: none;
+}
+.globe-canvas {
+  overflow: clip;
+  overflow-anchor: none;
+}
+.hub-lon .hub-hit.with-label,
+.hub-par .hub-hit.with-label,
+.hub-tor .hub-hit.with-label {
+  left: auto;
+  right: -22px;
+  flex-direction: row-reverse;
+  text-align: right;
+}
+.hub-par .hub-name {
+  transform: translateY(9px);
+}
+.hub-fra .hub-name {
+  transform: translateY(-8px);
+}
+.hub-sha .hub-name {
+  transform: translateY(-5px);
+}
+.hub-hit:focus-visible {
+  outline: 1px solid var(--amber);
+  border-radius: 3px;
+}
+@supports not (height: 100dvh) {
+  .app-shell {
+    height: 100vh;
+  }
+  .sheet,
+  .sheet.wide {
+    max-height: calc(100vh - 50px);
+  }
+}
+@media (max-width: 700px) {
+  input:not([type="number"]),
+  select {
+    font-size: 16px !important;
+  }
+  .search-field input {
+    font-size: 16px;
+  }
+  .search-field input::placeholder {
+    font-size: 12px;
+  }
+}
+.local-story-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 9px;
+  color: #b9a485;
+  max-width: 380px;
+  line-height: 1.6;
+}
+.local-story-preview > span:nth-child(2) {
+  flex: 1;
+}
+.local-story-preview .event-dot {
+  width: 5px;
+  height: 5px;
+}
+.has-selection .session-card.focused {
+  max-width: 630px;
+}
+@media (max-width: 700px) {
+  .local-story-preview {
+    font-size: 8px;
+    gap: 7px;
+    margin-top: 10px;
+    padding-top: 9px;
+  }
+  .session-card.focused:has(.local-story-preview) {
+    min-height: 175px;
+  }
+  .has-selection .map-controls {
+    bottom: 211px;
+  }
+  .session-card.focused .session-copy {
+    flex: 1;
+  }
+  .selected-index small {
+    display: block;
+    flex-basis: 100%;
+    margin-top: 0;
+  }
+  .mini-movers {
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+}
